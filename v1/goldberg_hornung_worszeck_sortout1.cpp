@@ -17,6 +17,8 @@ using namespace std;
 #define MAX_CHARS	33
 #define SECTIONS	100
 
+#define PetersWiener "Massive"
+
 int data[MAX_ROWS][MAX_COLS];
 int* singleArray = new int[1024*2048];
 int avg[10][2000];
