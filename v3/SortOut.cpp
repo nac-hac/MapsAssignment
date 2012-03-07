@@ -42,6 +42,8 @@ SortOut::~SortOut() {
 }
 
 void SortOut::getData() {
+	std::cout << "testing github\n\n";
+
 	printf("*** getting data ***");
 	swGetData.startTimer();
 
