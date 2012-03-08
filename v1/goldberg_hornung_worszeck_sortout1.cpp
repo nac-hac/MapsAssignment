@@ -340,19 +340,21 @@ void calcMovingAve()
 	
 	int sum;
 
-	for(int j(0); j < MAX_ROWS; ++j)
-	{		
-		for(int k(0); k < 10; ++k)
-		{
-			sum = 0;
-
-			for(int i(0); i < 100; ++i)
+	#pragma omp parallel for
+		for(int j(0); j < MAX_ROWS; ++j)
+		{	
+		#pragma omp parallel for
+			for(int k(0); k < 10; ++k)
 			{
-				sum+=data[j][i + 100*k];
+				sum = 0;
+		
+				for(int i(0); i < 100; ++i)
+				{
+					sum+=data[j][i + 100*k];
+				}
+				avg[k][j] = sum/100;		
 			}
-			avg[k][j] = sum/100;		
 		}
-	}
 
 	for(int j(2); j < 3; ++j)
 	{
