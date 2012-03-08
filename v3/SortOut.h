@@ -10,7 +10,7 @@
 #define MAX_ELEMENTS MAX_ROWS * MAX_COLS
 
 
-#define SEGMENTS_DATA 2
+#define SEGMENTS_DATA 25
 #define SEGMENTS_ALLDATA 2048 * 32
 
 class SortOut {

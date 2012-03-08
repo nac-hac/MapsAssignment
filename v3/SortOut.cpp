@@ -79,7 +79,7 @@ void SortOut::sortData()
 	printf("\n\n*** sorting data ***");
 	swSortData.startTimer();
 
-	//#pragma omp parallel for
+	#pragma omp parallel for
 	for (int i = 0; i < MAX_ROWS; ++i) 
 	{
 		//bubblesort(data[i], MAX_COLS);
@@ -117,7 +117,7 @@ void SortOut::bubblesortSplit(int* a, const int max, const int numberOfSegments)
 	}
 
 	//Sort each segment
-	#pragma parallel for
+	#pragma omp parallel for
 	for (int i = 0; i < numberOfSegments; ++i) 
 	{			
 		bubblesort(segments[i], segmentSize);
@@ -187,7 +187,6 @@ void SortOut::bubblesortSplit(int* a, const int max, const int numberOfSegments)
 void SortOut::bubblesortSplitV2(int* a, const int max, const int numberOfSegments) 
 {
 	//Calculate this only once
-	int rest = max % numberOfSegments;
 	int segmentSize = max/numberOfSegments;
 	
 	//An array of an amount of "numberOfThreads" int pointers
@@ -200,20 +199,16 @@ void SortOut::bubblesortSplitV2(int* a, const int max, const int numberOfSegment
 	}
 
 	//Sort each segment
-	#pragma parallel for
+	//#pragma omp parallel for
 	for (int i = 0; i < numberOfSegments; ++i) 
 	{			
 		bubblesort(segments[i], segmentSize);
 	}	
 
-	//Sort rest
-	bubblesort(&a[max-rest], rest);
-	
-	//Create tail array and insert rest
-	int* tail = new int[rest];
-	for (int i = 0; i < rest; ++i) {
-		tail[i] = a[max-rest+i];
-	}
+	//Sort tail
+	int rest = max % numberOfSegments;
+	int maxNoRest = max-rest; //caculate only once 
+	bubblesort(&a[maxNoRest], rest);
 
 	//Function which merges arrays of unequal size
 	//Merge the segments two at a time:
@@ -224,19 +219,14 @@ void SortOut::bubblesortSplitV2(int* a, const int max, const int numberOfSegment
 	for (int i = 0; i < numberOfSegments-1; ++i) 
 	{
 		merge(segmentSize*(i+1), segmentSize, segments[0], segments[i+1], temp);
-
-		for(int j = 0; j < segmentSize*(i+2); j++) 
-		{
-			a[j] = temp[j];
-		}
+		memcpy(a, temp, sizeof(int)*segmentSize*(i+2));
 	}
 
-	merge(max-rest, rest, a, (int*)&a[max-rest], temp);
+	//Merge the rest
+	merge(maxNoRest, rest, a, (int*)&a[maxNoRest], temp);
+	memcpy(a, temp, sizeof(int)*max);
 
-	for (int i = 0; i < max; ++i) {
-		a[i] = temp[i];
-	}
-
+	//Cleanup heap
 	delete[] segments;
 }
 
@@ -254,31 +244,32 @@ void SortOut::bubblesort(int * a, int max) {
 }
 
 //Source: http://www.algolist.net/Algorithms/Merge/Sorted_arrays
-void SortOut::merge(int m, int n, int* A, int* B, int* C) {
-      int i(0), j(0), k(0);
+//Optimized and modified for readability
+void SortOut::merge(int SizeA, int SizeB, int* A, int* B, int* Destination) {
+	int aIndex(0), bIndex(0), dIndex(0);
 
-      while (i < m && j < n) {
-            if (A[i] <= B[j]) {
-                  C[k] = A[i];
-                  i++;
-            } else {
-				C[k] = B[j];
-				j++;
-            }
-            k++;
-      }
+	while (aIndex < SizeA && bIndex < SizeB) {
+		if (A[aIndex] <= B[bIndex]) {
+			Destination[dIndex] = A[aIndex];
+			++aIndex;
+		} else {
+			Destination[dIndex] = B[bIndex];
+			++bIndex;
+		}
+		++dIndex;
+	}
 
-      if (i < m) {
-		  for (int p = i; p < m; p++) {
-			  C[k] = A[p];
-			  k++;
-		  }
-	  } else {
-		  for (int p = j; p < n; p++) {
-			  C[k] = B[p];
-			  k++;
-		  }
-	  }
+	if (aIndex < SizeA) {
+		for (aIndex; aIndex < SizeA; aIndex++) {
+			Destination[dIndex] = A[aIndex];
+			++dIndex;
+		}
+	} else {
+		for (bIndex; bIndex < SizeB; bIndex++) {
+			Destination[dIndex] = B[bIndex];
+			++dIndex;
+		}
+	}
 }
 
 void SortOut::testData() {

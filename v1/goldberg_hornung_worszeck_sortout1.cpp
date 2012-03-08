@@ -339,7 +339,7 @@ void calcMovingAve()
 {
 	
 	int sum;
-
+	/*
 	#pragma omp parallel for
 		for(int j(0); j < MAX_ROWS; ++j)
 		{	
@@ -355,7 +355,7 @@ void calcMovingAve()
 				avg[k][j] = sum/100;		
 			}
 		}
-
+*/
 	for(int j(2); j < 3; ++j)
 	{
 		for(int i(0); i < 10; ++i)
