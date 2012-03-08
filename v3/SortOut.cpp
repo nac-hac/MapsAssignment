@@ -412,12 +412,12 @@ void SortOut::testData() {
 void SortOut::outputTimes()
 {
 	printf("\n\n*** outputting times ***");
-	std::cout << "\n\nsortRows: " << swSortRows.getElapsedTime() << " seconds\n";
-	std::cout << "outputSortedRows: " << swOutputSortedRows.getElapsedTime() << " seconds\n";
-	std::cout << "sortAll: " << swSortAll.getElapsedTime() << " seconds\n";
-	std::cout << "outputSortedAll: " << swOutputSortedAll.getElapsedTime() << " seconds\n";
-	std::cout << "calcMovingAve: " << swCalcMovingAve.getElapsedTime() << " seconds\n";
-	std::cout << "outputAveRows: " << swOutputAveRows.getElapsedTime() << " seconds\n";
+	std::cout << "\n\nsortRows:\t\t" << swSortRows.getElapsedTime() << " seconds\n";
+	std::cout << "outputSortedRows:\t" << swOutputSortedRows.getElapsedTime() << " seconds\n";
+	std::cout << "sortAll:\t\t" << swSortAll.getElapsedTime() << " seconds\n";
+	std::cout << "outputSortedAll:\t" << swOutputSortedAll.getElapsedTime() << " seconds\n";
+	std::cout << "calcMovingAve:\t\t" << swCalcMovingAve.getElapsedTime() << " seconds\n";
+	std::cout << "outputAveRows:\t\t" << swOutputAveRows.getElapsedTime() << " seconds\n";
 }
 
 void SortOut::outputFile(const char* filename, const char* content) {
