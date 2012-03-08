@@ -18,19 +18,19 @@ int main() {
 
 SortOut::SortOut() {	
 	getData();	
-	getAllData();
+	//getAllData();
 
 	sortData();
-	sortAllData();
+	//sortAllData();
 
 	testData();
 
 	outputData();	
-	outputAllData();
+	//outputAllData();
 
-	calcMovingAve();
+	//calcMovingAve();
 
-	outputAveRows();
+	//outputAveRows();
 
 	outputTimes();
 
@@ -47,7 +47,7 @@ void SortOut::getData() {
 	swGetData.startTimer();
 
 	srand(123); //arbitrary random number seed
-	//#pragma omp parallel for (tests will fail)
+
 	for(int i=0; i<MAX_ROWS; i++) 
 	{
 		for(int j=0; j<MAX_COLS; j++) 
@@ -79,9 +79,11 @@ void SortOut::sortData()
 	printf("\n\n*** sorting data ***");
 	swSortData.startTimer();
 
+	//#pragma omp parallel for
 	for (int i = 0; i < MAX_ROWS; ++i) 
 	{
-		bubblesortSplit(data[i], MAX_COLS, SEGMENTS_DATA);
+		//bubblesort(data[i], MAX_COLS);
+		bubblesortSplitV2(data[i], MAX_COLS, SEGMENTS_DATA);
 	}
 
 	swSortData.stopTimer();
@@ -102,6 +104,7 @@ void SortOut::sortAllData()
 void SortOut::bubblesortSplit(int* a, const int max, const int numberOfSegments) 
 {
 	//Calculate this only once
+	int rest = max % numberOfSegments;
 	int segmentSize = max/numberOfSegments;
 	
 	//An array of an amount of "numberOfThreads" int pointers
@@ -114,20 +117,37 @@ void SortOut::bubblesortSplit(int* a, const int max, const int numberOfSegments)
 	}
 
 	//Sort each segment
-	//#pragma parallel for - no effect
-		for (int i = 0; i < numberOfSegments; ++i) 
-		{			
-				bubblesort(segments[i], segmentSize);
-		}	
+	#pragma parallel for
+	for (int i = 0; i < numberOfSegments; ++i) 
+	{			
+		bubblesort(segments[i], segmentSize);
+	}	
 
-	int segmentCounter(numberOfSegments);	
+	//Sort rest
+	bubblesort(&a[max-rest], rest);
 	
+	//Create tail array and insert rest
+	int* tail = new int[rest];
+	for (int i = 0; i < rest; ++i) {
+		tail[i] = a[max-rest+i];
+	}
+	int tailSize = rest;
+
 	//This loop merges an array of segments in the following parallelisable way 
 	// 0 1 2 3 -> 0-1 2-3 -> 0-1-2-3
-	while(segmentCounter != 1) {	
-		
+	for (int segmentCounter = numberOfSegments; segmentCounter > 1; segmentCounter/=2) {
+		//If segment amount is not an even number, then put last segment into tail
+		if (segmentCounter%2 != 0) {
+			int *temp = new int[segmentSize+tailSize];
+			merge(tailSize, segmentSize, tail, segments[segmentCounter-1], temp);
+			delete[] tail;
+			tail = &(*temp);
+			tailSize += segmentSize;
+			--segmentCounter;
+		}
+
 		//After each loop pointer offset is doubled to point to the first member of the new larger arrays
-		//#pragma omp parallel for //- MAKES SLOWER 
+		#pragma omp parallel for
 		for (int i = 0; i < segmentCounter/2; ++i) 
 		{
 			int segmentOffset = 2*i;  //calculates offset only once
@@ -145,23 +165,63 @@ void SortOut::bubblesortSplit(int* a, const int max, const int numberOfSegments)
 		}
 
 		segmentSize*=2;	//double segment size as segements have doubled in size
-		segmentCounter /= 2;
 
 		//offsets pointer addresses 
-		for(int i = 1; i < segmentCounter; ++i)
+		for(int i = 1; i < segmentCounter/2; ++i)
 		{
 			segments[i] = segments[i*2]; 
-		}		
+		}
+	}
+
+	int* temp = new int[max];
+	merge(segmentSize, tailSize, a, tail, temp);
+
+	for (int i = 0; i < max; ++i) {
+		a[i] = temp[i];
+	}
+
+	delete[] tail;
+	delete[] segments;
+}
+
+void SortOut::bubblesortSplitV2(int* a, const int max, const int numberOfSegments) 
+{
+	//Calculate this only once
+	int rest = max % numberOfSegments;
+	int segmentSize = max/numberOfSegments;
+	
+	//An array of an amount of "numberOfThreads" int pointers
+	int** segments = new int*[numberOfSegments];	
+
+	//Let each pointer point to a factorized offset of "segmentsize" of the inputarray
+	for (int i = 0; i < numberOfSegments; ++i) 
+	{
+		segments[i] = &a[i*segmentSize];
+	}
+
+	//Sort each segment
+	#pragma parallel for
+	for (int i = 0; i < numberOfSegments; ++i) 
+	{			
+		bubblesort(segments[i], segmentSize);
+	}	
+
+	//Sort rest
+	bubblesort(&a[max-rest], rest);
+	
+	//Create tail array and insert rest
+	int* tail = new int[rest];
+	for (int i = 0; i < rest; ++i) {
+		tail[i] = a[max-rest+i];
 	}
 
 	//Function which merges arrays of unequal size
-
-	/*	//Merge the segments two at a time:
+	//Merge the segments two at a time:
 	//Example with 4 segments: 0 1 2 3 -> 0-1 2 3 -> 0-1-2 3 -> 0-1-2-3
 
 	int temp[MAX_COLS];
 
-	for (int i = 0; i < numberOfThreads-1; ++i) 
+	for (int i = 0; i < numberOfSegments-1; ++i) 
 	{
 		merge(segmentSize*(i+1), segmentSize, segments[0], segments[i+1], temp);
 
@@ -170,7 +230,14 @@ void SortOut::bubblesortSplit(int* a, const int max, const int numberOfSegments)
 			a[j] = temp[j];
 		}
 	}
-	*/
+
+	merge(max-rest, rest, a, (int*)&a[max-rest], temp);
+
+	for (int i = 0; i < max; ++i) {
+		a[i] = temp[i];
+	}
+
+	delete[] segments;
 }
 
 void SortOut::bubblesort(int * a, int max) {
@@ -186,7 +253,7 @@ void SortOut::bubblesort(int * a, int max) {
 	}
 }
 
-//Source: ?
+//Source: http://www.algolist.net/Algorithms/Merge/Sorted_arrays
 void SortOut::merge(int m, int n, int* A, int* B, int* C) {
       int i(0), j(0), k(0);
 
@@ -230,6 +297,7 @@ void SortOut::outputData() {
 	swOutputData.startTimer();
 
 	std::string output;
+
 	for(int i=0; i<MAX_ROWS; i++) {
 		for(int j=0; j<MAX_COLS; j++) {
 			char buffer [33];
@@ -239,10 +307,33 @@ void SortOut::outputData() {
 		}
 		output += "\n";
 	}
-	FILE * pFile;
-	fopen_s(&pFile, "sodata.txt", "w");
-	fputs(output.c_str(), pFile);
-	fclose (pFile);
+	outputFile("sodata.txt",  output.c_str());
+
+	swOutputData.stopTimer();
+	printf("\n\nDone.");
+}
+
+void SortOut::outputData2() {
+	printf("\n\n*** outputting data to sodata.txt... ***");
+	swOutputData.startTimer();
+
+	std::string output[MAX_ROWS];
+	#pragma omp parallel for
+	for(int i=0; i<MAX_ROWS; i++) {
+		for(int j=0; j<MAX_COLS; j++) {
+			char buffer [33];
+			_itoa_s(data[i][j], buffer, 10);
+			output[i] += buffer;
+			output[i] += "\t";
+		}
+		output[i] += "\n";
+	}
+
+	for (int i = 1; i < MAX_ROWS; ++i) {
+		output[0] += output[i];
+	}
+
+	outputFile("sodata.txt",  output[0].c_str());
 
 	swOutputData.stopTimer();
 	printf("\n\nDone.");
@@ -267,10 +358,7 @@ void SortOut::outputAllData()
 		}
 	}
 			
-	FILE * pFile;
-	fopen_s(&pFile, "soAllData.txt", "w");
-	fputs(output.c_str(), pFile);
-	fclose (pFile);
+	outputFile("soAllData.txt", output.c_str());
 
 	swOutputAllData.stopTimer();
 	printf("\n\nDone.");
@@ -284,7 +372,7 @@ void SortOut::calcMovingAve()
 
 	swCalcMovingAve.startTimer();	
 
-	for(int j(0); j < MAX_ROWS2; ++j)
+	for(int j(0); j < MAX_ROWS; ++j)
 	{		
 		for(int k(0); k < 10; ++k)
 		{
@@ -305,13 +393,12 @@ void SortOut::calcMovingAve()
 
 void SortOut::outputAveRows()
 {
-	
 	printf("\n\n*** outputting data to movingAvg.txt... ***");
 	std::string output;
 
 	swOutputMovingAvg.startTimer();
 
-	for(int i=0; i < MAX_ROWS2; i++) 
+	for(int i=0; i < MAX_ROWS; i++) 
 	{
 		for(int j=0; j< 10; j++) 
 		{
@@ -323,10 +410,7 @@ void SortOut::outputAveRows()
 		output += "\n";
 	}
 
-	FILE * pFile;
-	fopen_s(&pFile, "movingAvg.txt", "w");
-	fputs(output.c_str(), pFile);
-	fclose (pFile);
+	outputFile("movingAvg.txt", output.c_str());
 
 	swOutputMovingAvg.stopTimer();
 
@@ -343,4 +427,11 @@ void SortOut::outputTimes()
 	std::cout << "Sort all data: " << swSortAllData.getElapsedTime() << " seconds\n\n";
 	std::cout << "\n\nMoving Averages: " << swCalcMovingAve.getElapsedTime();
 	std::cout << "\nOutput: " << swOutputMovingAvg.getElapsedTime();
+}
+
+void SortOut::outputFile(const char* filename, const char* content) {
+	FILE * pFile;
+	fopen_s(&pFile, filename, "w");
+	fputs(content, pFile);
+	fclose (pFile);
 }
