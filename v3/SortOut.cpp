@@ -18,19 +18,18 @@ int main() {
 
 SortOut::SortOut() {	
 	getData();	
-	//getAllData();
+	getAllData();
 
-	sortData();
-	//sortAllData();
+	sortRows();
+	sortAll();
 
 	testData();
 
-	outputData();	
-	//outputAllData();
+	outputSortedRows();
+	outputSortedAll();
 
-	//calcMovingAve();
-
-	//outputAveRows();
+	calcMovingAve();
+	outputAveRows();
 
 	outputTimes();
 
@@ -41,10 +40,341 @@ SortOut::~SortOut() {
 
 }
 
+// methods to be timed
+
+// *********** sortRows **********
+
+// for
+
+void SortOut::sortRows()
+{
+	printf("\n\n*** sorting data ***");
+	swSortRows.startTimer();
+
+	#pragma omp parallel for
+	for (int i = 0; i < MAX_ROWS; ++i) 
+	{
+		//bubblesort(data[i], MAX_COLS);
+		bubblesortSplitV2(data[i], MAX_COLS, SEGMENTS_DATA);
+	}
+
+	swSortRows.stopTimer();
+	printf("\n\nDone.");
+}
+
+//section
+/*
+void SortOut::sortRows()
+{
+	printf("\n\n*** sorting data ***");
+	swSortRows.startTimer();
+
+	for (int i = 0; i < MAX_ROWS; ++i) 
+	{
+		bubblesortSplitV2(data[i], MAX_COLS, SEGMENTS_DATA);
+	}
+
+	swSortRows.stopTimer();
+	printf("\n\nDone.");
+}
+*/
+
+
+// *********** outputSortedRows **********
+
+// for
+void SortOut::outputSortedRows() {
+	printf("\n\n*** outputting data to soDataRows.txt... ***");
+	swOutputSortedRows.startTimer();
+
+	std::string output[MAX_ROWS];
+	#pragma omp parallel for
+	for(int i=0; i<MAX_ROWS; i++) {
+		for(int j=0; j<MAX_COLS; j++) {
+			char buffer [33];
+			_itoa_s(data[i][j], buffer, 10);
+			output[i] += buffer;
+			output[i] += "\t";
+		}
+		output[i] += "\n";
+	}
+
+	for (int i = 1; i < MAX_ROWS; ++i) {
+		output[0] += output[i];
+	}
+
+	outputFile("soDataRows.txt",  output[0].c_str());
+
+	swOutputSortedRows.stopTimer();
+	printf("\n\nDone.");
+}
+
+/*
+//section
+void SortOut::outputSortedRows()
+{
+	TO DO
+}
+*/
+
+// *********** sortAll **********
+
+// for
+void SortOut::sortAll()
+{
+	// TO DO
+}
+
+/*
+// section
+void SortOut::sortAll()
+{
+	printf("\n\n*** sorting data ***");
+	swSortAll.startTimer();
+
+	bubblesortSplit(allData, MAX_COLS*MAX_ROWS, SEGMENTS_ALLDATA);
+
+	swSortAll.stopTimer();
+	printf("\n\nDone.");
+}
+*/
+
+// *********** outputSortedAll **********
+
+// for
+void SortOut::outputSortedAll()
+{
+	// TO DO
+	printf("\n\n*** outputting data to soDataAll.txt... ***");
+	swOutputSortedAll.startTimer();
+
+	std::string output;
+	for(int j=1; j<=MAX_COLS*MAX_ROWS; j++)
+	{
+		char buffer [33];
+		_itoa_s(allData[j], buffer, 10);
+		output += buffer;
+		output += "\t";
+
+		if(j % 1000 == 0)
+		{
+			output += "\n";
+		}
+	}
+			
+	outputFile("soDataAll.txt", output.c_str());
+
+	swOutputSortedAll.stopTimer();
+	printf("\n\nDone.");
+}
+
+/*
+// section
+void SortOut::outputSortedAll()
+{
+	TO DO
+}
+*/
+
+// *********** calcMovingAve **********
+
+// for
+void SortOut::calcMovingAve()
+{
+	swCalcMovingAve.startTimer();
+	int sum[MAX_ROWS];
+
+	#pragma omp parallel for
+		for(int j = 0; j < MAX_ROWS; ++j)
+		{
+			for(int k = 0; k < 10; ++k)
+			{
+				sum[j] = 0;
+				
+				for(int i = 0; i < 100; ++i)
+				{
+					sum[j] += data[j][i + 100*k];
+				}
+				ave[k][j] = sum[j]/100;
+			}
+		}
+	swCalcMovingAve.stopTimer();
+}
+
+/*
+// section
+void SortOut::calcMovingAve()
+{
+	int sum[MAX_ROWS];
+
+	for(int j = 0; j < MAX_ROWS; ++j)
+	{
+		sum[j] = 0;
+		
+		#pragma omp parallel sections
+		{
+			// first 100 values in one row
+			#pragma omp section
+			{
+				for(int i = 0; i < 100; ++i)
+				{
+					sum[j] += data[j][i];
+				}
+				ave[0][j] = sum[j]/100;
+			}
+			
+			// second 100 values in one row
+			#pragma omp section
+			{
+				sum[j] = 0;
+				for(int i = 100; i < 200; ++i)
+				{
+					sum[j] += data[j][i];
+				}
+				ave[1][j] = sum[j]/100;
+			}
+
+			// third 100 values in one row
+			#pragma omp section
+			{
+				sum[j] = 0;
+				for(int i = 200; i < 300; ++i)
+				{
+					sum[j] += data[j][i];
+				}
+				ave[2][j] = sum[j]/100;
+			}
+
+			// fourth 100 values in one row
+			#pragma omp section
+			{
+				sum[j] = 0;
+				for(int i = 300; i < 400; ++i)
+				{
+					sum[j] += data[j][i];
+				}
+				ave[3][j] = sum[j]/100;
+			}
+
+			// fifth 100 values in one row
+			#pragma omp section
+			{
+				sum[j] = 0;
+				for(int i = 400; i < 500; ++i)
+				{
+					sum[j] += data[j][i];
+				}
+				ave[4][j] = sum[j]/100;
+			}
+
+			// sixth 100 values in one row
+			#pragma omp section
+			{
+				for(int i = 500; i < 600; ++i)
+				{
+					sum[j] += data[j][i];
+				}
+				ave[5][j] = sum[j]/100;
+			}
+			
+			// seventh 100 values in one row
+			#pragma omp section
+			{
+				sum[j] = 0;
+				for(int i = 600; i < 700; ++i)
+				{
+					sum[j] += data[j][i];
+				}
+				ave[6][j] = sum[j]/100;
+			}
+
+			// eigth 100 values in one row
+			#pragma omp section
+			{
+				sum[j] = 0;
+				for(int i = 700; i < 800; ++i)
+				{
+					sum[j] += data[j][i];
+				}
+				ave[7][j] = sum[j]/100;
+			}
+
+			// ninth 100 values in one row
+			#pragma omp section
+			{
+				sum[j] = 0;
+				for(int i = 800; i < 900; ++i)
+				{
+					sum[j] += data[j][i];
+				}
+				ave[8][j] = sum[j]/100;
+			}
+
+			// tenth 100 values in one row
+			#pragma omp section
+			{
+				sum[j] = 0;
+				for(int i = 900; i < 1000; ++i)
+				{
+					sum[j] += data[j][i];
+				}
+				ave[9][j] = sum[j]/100;
+			}
+		}
+	}
+}
+*/
+
+
+// *********** outputAveRows **********
+// for
+void SortOut::outputAveRows()
+{
+	printf("\n\n*** outputting data to soDataAve.txt... ***");
+	swOutputAveRows.startTimer();
+	std::string output[MAX_ROWS];
+
+	#pragma omp parallel for
+		for(int i=0; i < MAX_ROWS; i++) 
+		{
+			for(int j = 0; j < 10; j++) 
+			{
+				char buffer [33];
+				_itoa_s(ave[j][i], buffer, 10);
+				output[i] += buffer;
+				output[i] += "\t";
+			}
+			output[i] += "\n";
+		}
+
+		for (int i = 1; i < MAX_ROWS; ++i)
+		{
+			output[0] += output[i];
+		}
+
+	outputFile("soDataAve.txt", output[0].c_str());
+	swOutputAveRows.stopTimer();
+	printf("\n\nDone.");
+}
+
+/*
+// sections
+void SortOut::outputAveRows()
+{
+	TO DO
+}
+*/
+
+
+
+// ********************
+// help methods
+// ********************
+
+
 void SortOut::getData() {
 
 	printf("*** getting data ***");
-	swGetData.startTimer();
 
 	srand(123); //arbitrary random number seed
 
@@ -55,14 +385,11 @@ void SortOut::getData() {
 			data[i][j] = rand(); //RAND_MAX = 32767
 		}
 	}
-
-	swGetData.stopTimer();
 	printf("\n\nDone.");
 }
 
 void SortOut::getAllData()
 {
-	swGetAllData.startTimer();
 	srand(123);
 
 	#pragma omp parallel for
@@ -70,35 +397,34 @@ void SortOut::getAllData()
 	{
 		allData[i] = rand();
 	}
-
-	swGetAllData.stopTimer();
 }
 
-void SortOut::sortData()
-{
-	printf("\n\n*** sorting data ***");
-	swSortData.startTimer();
-
-	#pragma omp parallel for
-	for (int i = 0; i < MAX_ROWS; ++i) 
-	{
-		//bubblesort(data[i], MAX_COLS);
-		bubblesortSplitV2(data[i], MAX_COLS, SEGMENTS_DATA);
-	}
-
-	swSortData.stopTimer();
-	printf("\n\nDone.");
+void SortOut::testData() {
+	printf("\n\n*** testing data ***");
+	if (data[0][0] == 87 &&
+		data[MAX_ROWS/2][MAX_COLS/2] == 16440 &&
+		data[MAX_ROWS-1][MAX_COLS-1] == 32760)
+		printf("\n\nTEST SUCCEEDED");
+	else
+		printf("\n\nTEST FAILED!");
 }
 
-void SortOut::sortAllData()
+void SortOut::outputTimes()
 {
-	printf("\n\n*** sorting data ***");
-	swSortAllData.startTimer();
+	printf("\n\n*** outputting times ***");
+	std::cout << "\n\nsortRows: " << swSortRows.getElapsedTime() << " seconds\n";
+	std::cout << "outputSortedRows: " << swOutputSortedRows.getElapsedTime() << " seconds\n";
+	std::cout << "sortAll: " << swSortAll.getElapsedTime() << " seconds\n";
+	std::cout << "outputSortedAll: " << swOutputSortedAll.getElapsedTime() << " seconds\n";
+	std::cout << "calcMovingAve: " << swCalcMovingAve.getElapsedTime() << " seconds\n";
+	std::cout << "outputAveRows: " << swOutputAveRows.getElapsedTime() << " seconds\n";
+}
 
-	bubblesortSplit(allData, MAX_COLS*MAX_ROWS, SEGMENTS_ALLDATA);
-
-	swSortAllData.stopTimer();
-	printf("\n\nDone.");
+void SortOut::outputFile(const char* filename, const char* content) {
+	FILE * pFile;
+	fopen_s(&pFile, filename, "w");
+	fputs(content, pFile);
+	fclose (pFile);
 }
 
 void SortOut::bubblesortSplit(int* a, const int max, const int numberOfSegments) 
@@ -184,7 +510,7 @@ void SortOut::bubblesortSplit(int* a, const int max, const int numberOfSegments)
 	delete[] segments;
 }
 
-void SortOut::bubblesortSplitV2(int* a, const int max, const int numberOfSegments) 
+void SortOut::bubblesortSplitV2(int* a, const int max, const int numberOfSegments)
 {
 	//Calculate this only once
 	int segmentSize = max/numberOfSegments;
@@ -272,157 +598,3 @@ void SortOut::merge(int SizeA, int SizeB, int* A, int* B, int* Destination) {
 	}
 }
 
-void SortOut::testData() {
-	printf("\n\n*** testing data ***");
-	if (data[0][0] == 87 &&
-		data[MAX_ROWS/2][MAX_COLS/2] == 16440 &&
-		data[MAX_ROWS-1][MAX_COLS-1] == 32760)
-		printf("\n\nTEST SUCCEEDED");
-	else
-		printf("\n\nTEST FAILED!");
-}
-
-
-void SortOut::outputData() {
-	printf("\n\n*** outputting data to sodata.txt... ***");
-	swOutputData.startTimer();
-
-	std::string output;
-
-	for(int i=0; i<MAX_ROWS; i++) {
-		for(int j=0; j<MAX_COLS; j++) {
-			char buffer [33];
-			_itoa_s(data[i][j], buffer, 10);
-			output += buffer;
-			output += "\t";
-		}
-		output += "\n";
-	}
-	outputFile("sodata.txt",  output.c_str());
-
-	swOutputData.stopTimer();
-	printf("\n\nDone.");
-}
-
-void SortOut::outputData2() {
-	printf("\n\n*** outputting data to sodata.txt... ***");
-	swOutputData.startTimer();
-
-	std::string output[MAX_ROWS];
-	#pragma omp parallel for
-	for(int i=0; i<MAX_ROWS; i++) {
-		for(int j=0; j<MAX_COLS; j++) {
-			char buffer [33];
-			_itoa_s(data[i][j], buffer, 10);
-			output[i] += buffer;
-			output[i] += "\t";
-		}
-		output[i] += "\n";
-	}
-
-	for (int i = 1; i < MAX_ROWS; ++i) {
-		output[0] += output[i];
-	}
-
-	outputFile("sodata.txt",  output[0].c_str());
-
-	swOutputData.stopTimer();
-	printf("\n\nDone.");
-}
-
-void SortOut::outputAllData()
-{
-	printf("\n\n*** outputting data to soAllData.txt... ***");
-	swOutputAllData.startTimer();
-
-	std::string output;
-	for(int j=1; j<=MAX_COLS*MAX_ROWS; j++)
-	{
-		char buffer [33];
-		_itoa_s(allData[j], buffer, 10);
-		output += buffer;
-		output += "\t";
-
-		if(j % 1000 == 0)
-		{
-			output += "\n";
-		}
-	}
-			
-	outputFile("soAllData.txt", output.c_str());
-
-	swOutputAllData.stopTimer();
-	printf("\n\nDone.");
-}
-
-void SortOut::calcMovingAve()
-{	
-	std::cout << "\nSorting averages or something\n";
-
-	int sum;
-
-	swCalcMovingAve.startTimer();	
-
-	for(int j(0); j < MAX_ROWS; ++j)
-	{		
-		for(int k(0); k < 10; ++k)
-		{
-			sum = 0;
-
-			for(int i(0); i < 100; ++i)
-			{
-				sum+=data[j][i + 100*k];
-			}
-			avg[k][j] = sum/100;		
-		}
-	}
-
-	swCalcMovingAve.stopTimer();
-
-	std::cout << "\ndone\n";
-}
-
-void SortOut::outputAveRows()
-{
-	printf("\n\n*** outputting data to movingAvg.txt... ***");
-	std::string output;
-
-	swOutputMovingAvg.startTimer();
-
-	for(int i=0; i < MAX_ROWS; i++) 
-	{
-		for(int j=0; j< 10; j++) 
-		{
-			char buffer [33];
-			_itoa_s(avg[j][i], buffer, 10);
-			output += buffer;
-			output += "\t";
-		}
-		output += "\n";
-	}
-
-	outputFile("movingAvg.txt", output.c_str());
-
-	swOutputMovingAvg.stopTimer();
-
-	printf("\n\nDone.");
-}
-
-void SortOut::outputTimes()
-{
-	printf("\n\n*** outputting times ***");
-	std::cout << "\n\nGet: " << swGetData.getElapsedTime() << " seconds\n";
-	std::cout << "Sort data: " << swSortData.getElapsedTime() << " seconds\n";
-	std::cout << "Output: " << swOutputData.getElapsedTime() << " seconds\n";
-	std::cout << "Sort + Output: " << swSortData.getElapsedTime()+swOutputData.getElapsedTime() << " seconds\n\n";
-	std::cout << "Sort all data: " << swSortAllData.getElapsedTime() << " seconds\n\n";
-	std::cout << "\n\nMoving Averages: " << swCalcMovingAve.getElapsedTime();
-	std::cout << "\nOutput: " << swOutputMovingAvg.getElapsedTime();
-}
-
-void SortOut::outputFile(const char* filename, const char* content) {
-	FILE * pFile;
-	fopen_s(&pFile, filename, "w");
-	fputs(content, pFile);
-	fclose (pFile);
-}

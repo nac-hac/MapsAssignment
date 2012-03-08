@@ -21,26 +21,34 @@ class SortOut {
 		~SortOut();
 
 	private:
-		//Methods
-		void getData(void);
+		// methods to be timed
+		void sortRows();
+		void outputSortedRows();
+		void sortAll();
+		void outputSortedAll();
+		void calcMovingAve(); 
+		void outputAveRows();
+
+		// help methods
+		void getData();
 		void getAllData();
-		void sortData(void);
-		void sortAllData();
-		void testData(void);
-		void outputData(void);
-		void outputData2();
-		void outputAllData();
-		void outputTimes(void);
+		void testData();
+		void outputTimes();
+		void outputFile(const char* filename, const char* content);
 		void merge(int, int, int*, int*, int*);
 		void bubblesortSplit(int*, const int, const int);
 		void bubblesortSplitV2(int*, const int, const int);
 		void bubblesort(int*, int);
-		void calcMovingAve(); 
-		void outputAveRows();
-		void outputFile(const char* filename, const char* content);
+		
 		//Members
 		int data[MAX_ROWS][MAX_COLS];
 		int allData[MAX_ELEMENTS];
-		int avg[MAX_COLS/100][MAX_ROWS];
-		CStopWatch swGetData, swGetAllData, swSortData, swSortAllData, swOutputData, swOutputAllData, swCalcMovingAve, swOutputMovingAvg;
+		int ave[MAX_COLS/100][MAX_ROWS];
+		CStopWatch
+			swSortRows,
+			swOutputSortedRows,
+			swSortAll,
+			swOutputSortedAll,
+			swCalcMovingAve,
+			swOutputAveRows;
 };
