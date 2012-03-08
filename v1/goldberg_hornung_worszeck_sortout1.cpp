@@ -30,6 +30,7 @@ void outputData();  //outputs 2-d array to a file
 void outputData2(); //outputs 1-d array to a file
 void outputTimes(); //displays times in console
 void calcMovingAve();  //works out the average value in each 100 section of rows
+void calcMovingAve_section();
 void outputAveRows(); //puts the moving averages into a file
 
 CStopWatch
@@ -77,7 +78,8 @@ int main()
 	sw_outputSortedSingle.stopTimer();
 
 	sw_calcMovingAve.startTimer();
-	calcMovingAve();
+	//calcMovingAve();
+	calcMovingAve_section();
 	sw_calcMovingAve.stopTimer();
 
 	sw_outputMovingAvg.startTimer();
@@ -337,33 +339,52 @@ void outputTimes() {
 
 void calcMovingAve()
 {
-	
-	int sum;
+	int sum[MAX_ROWS];
 
 	#pragma omp parallel for
-		for(int j(0); j < MAX_ROWS; ++j)
-		{	
-		#pragma omp parallel for
-			for(int k(0); k < 10; ++k)
+		for(int j = 0; j < MAX_ROWS; ++j)
+		{
+			for(int k = 0; k < 10; ++k)
 			{
-				sum = 0;
-		
-				for(int i(0); i < 100; ++i)
+				sum[j] = 0;
+				
+				for(int i = 0; i < 100; ++i)
 				{
-					sum+=data[j][i + 100*k];
+					sum[j]+=data[j][i + 100*k];
 				}
-				avg[k][j] = sum/100;		
+				avg[k][j] = sum[j]/100;
 			}
 		}
+}
 
-	for(int j(2); j < 3; ++j)
+void calcMovingAve_section()
+{
+	int sum[MAX_ROWS];
+
+	for(int j = 0; j < MAX_ROWS; ++j)
 	{
-		for(int i(0); i < 10; ++i)
+		sum[j] = 0;
+		
+		#pragma omp parallel sections
 		{
-			cout << avg[i][j] << "\n";
+			#pragma omp section
+				for(int i = 0; i < 100; ++i)
+				{
+					sum[j] += data[j][i + 100*0];
+					avg[0][j] += sum[j]/100;
+				}
+				//avg[0][j] = sum[j]/100;
+
+			#pragma omp section
+				for(int i = 100; i < 200; ++i)
+				{
+					sum[j]+=data[j][i + 100*1];
+				}
+				//avg[1][j] = sum[j]/100;
 		}
 	}
 }
+
 
 void outputAveRows()
 {
