@@ -30,6 +30,7 @@ void outputData();  //outputs 2-d array to a file
 void outputData2(); //outputs 1-d array to a file
 void outputTimes(); //displays times in console
 void calcMovingAve();  //works out the average value in each 100 section of rows
+void calcMovingAve_section();
 void outputAveRows(); //puts the moving averages into a file
 
 CStopWatch
@@ -77,14 +78,15 @@ int main()
 	sw_outputSortedSingle.stopTimer();
 
 	sw_calcMovingAve.startTimer();
-	calcMovingAve();
+	//calcMovingAve();
+	calcMovingAve_section();
 	sw_calcMovingAve.stopTimer();
 
 	sw_outputMovingAvg.startTimer();
 	outputAveRows();
 	sw_outputMovingAvg.stopTimer();
 
-	outputTimes(); 
+	outputTimes();
 
 	cout << "\n\n*** finished ***";	
 
@@ -339,31 +341,147 @@ void calcMovingAve()
 {
 	
 	int sum;
-	/*
+
+	int sum[MAX_ROWS];
+
 	#pragma omp parallel for
-		for(int j(0); j < MAX_ROWS; ++j)
-		{	
-		#pragma omp parallel for
-			for(int k(0); k < 10; ++k)
+		for(int j = 0; j < MAX_ROWS; ++j)
+		{
+			for(int k = 0; k < 10; ++k)
 			{
-				sum = 0;
-		
-				for(int i(0); i < 100; ++i)
+				sum[j] = 0;
+				
+				for(int i = 0; i < 100; ++i)
 				{
-					sum+=data[j][i + 100*k];
+					sum[j]+=data[j][i + 100*k];
 				}
-				avg[k][j] = sum/100;		
+				avg[k][j] = sum[j]/100;
 			}
 		}
-*/
-	for(int j(2); j < 3; ++j)
+}
+
+void calcMovingAve_section()
+{
+	int sum[MAX_ROWS];
+
+	for(int j = 0; j < MAX_ROWS; ++j)
 	{
-		for(int i(0); i < 10; ++i)
+		sum[j] = 0;
+		
+		#pragma omp parallel sections
 		{
-			cout << avg[i][j] << "\n";
+			// first 100 values in one row
+			#pragma omp section
+			{
+				for(int i = 0; i < 100; ++i)
+				{
+					sum[j] += data[j][i];
+				}
+				avg[0][j] = sum[j]/100;
+			}
+			
+			// second 100 values in one row
+			#pragma omp section
+			{
+				sum[j] = 0;
+				for(int i = 100; i < 200; ++i)
+				{
+					sum[j] += data[j][i];
+				}
+				avg[1][j] = sum[j]/100;
+			}
+
+			// third 100 values in one row
+			#pragma omp section
+			{
+				sum[j] = 0;
+				for(int i = 200; i < 300; ++i)
+				{
+					sum[j] += data[j][i];
+				}
+				avg[2][j] = sum[j]/100;
+			}
+
+			// fourth 100 values in one row
+			#pragma omp section
+			{
+				sum[j] = 0;
+				for(int i = 300; i < 400; ++i)
+				{
+					sum[j] += data[j][i];
+				}
+				avg[3][j] = sum[j]/100;
+			}
+
+			// fifth 100 values in one row
+			#pragma omp section
+			{
+				sum[j] = 0;
+				for(int i = 400; i < 500; ++i)
+				{
+					sum[j] += data[j][i];
+				}
+				avg[4][j] = sum[j]/100;
+			}
+
+			// sixth 100 values in one row
+			#pragma omp section
+			{
+				for(int i = 500; i < 600; ++i)
+				{
+					sum[j] += data[j][i];
+				}
+				avg[5][j] = sum[j]/100;
+			}
+			
+			// seventh 100 values in one row
+			#pragma omp section
+			{
+				sum[j] = 0;
+				for(int i = 600; i < 700; ++i)
+				{
+					sum[j] += data[j][i];
+				}
+				avg[6][j] = sum[j]/100;
+			}
+
+			// eigth 100 values in one row
+			#pragma omp section
+			{
+				sum[j] = 0;
+				for(int i = 700; i < 800; ++i)
+				{
+					sum[j] += data[j][i];
+				}
+				avg[7][j] = sum[j]/100;
+			}
+
+			// ninth 100 values in one row
+			#pragma omp section
+			{
+				sum[j] = 0;
+				for(int i = 800; i < 900; ++i)
+				{
+					sum[j] += data[j][i];
+				}
+				avg[8][j] = sum[j]/100;
+			}
+
+			// tenth 100 values in one row
+			#pragma omp section
+			{
+				sum[j] = 0;
+				for(int i = 900; i < 1000; ++i)
+				{
+					sum[j] += data[j][i];
+				}
+				avg[9][j] = sum[j]/100;
+			}
 		}
+		
 	}
 }
+
 
 void outputAveRows()
 {
