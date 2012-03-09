@@ -7,7 +7,7 @@ goldberg_hornung_worszeck.zip provides:
 	goldberg_hornung_worszeck_sortout_designs.docx
 
 # Timings
-	goldberg_hornung_worszeck_sortout_designs.xlsx
+	goldberg_hornung_worszeck_sortout_timings.xlsx
 
 # Header file (necessary for both versions)
 	goldberg_hornung_worszeck_sortout_header.h
