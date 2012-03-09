@@ -511,6 +511,11 @@ void SortOut::outputTimes()
 	std::cout << "outputSortedAll:\t" << swOutputSortedAll.getElapsedTime() << " seconds\n";
 	std::cout << "calcMovingAve:\t\t" << swCalcMovingAve.getElapsedTime() << " seconds\n";
 	std::cout << "outputAveRows:\t\t" << swOutputAveRows.getElapsedTime() << " seconds\n";
+	std::cout << "\t\t\t==========\n";
+	std::cout << "TOTAL:\t\t\t"
+		<< swSortRows.getElapsedTime()+swOutputSortedRows.getElapsedTime()+
+		swSortAll.getElapsedTime()+swOutputSortedAll.getElapsedTime()+
+		swCalcMovingAve.getElapsedTime()+swOutputAveRows.getElapsedTime() << " seconds \n";
 }
 
 void SortOut::outputFile(const char* filename, const char* content) {
