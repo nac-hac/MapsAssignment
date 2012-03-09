@@ -61,9 +61,9 @@ void SortOut::sortRows()
 	swSortRows.stopTimer();
 	printf("\n\nDone.");
 }
-
-//section
 /*
+//section
+
 void SortOut::sortRows()
 {
 	printf("\n\n*** sorting data ***");
@@ -81,7 +81,7 @@ void SortOut::sortRows()
 
 
 // *********** outputSortedRows **********
-/*
+
 // for
 void SortOut::outputSortedRows() {
 	printf("\n\n*** outputting data to soDataRows.txt... ***");
@@ -108,23 +108,23 @@ void SortOut::outputSortedRows() {
 	swOutputSortedRows.stopTimer();
 	printf("\n\nDone.");
 }
-*/
 
+/*
 //section
 void SortOut::outputSortedRows()
 {
 	printf("\n\n*** outputting data to soDataRows.txt... ***");
 	swOutputSortedRows.startTimer();
 	
-	std::string outputSection[MAX_ROWS/4], outputSection2[MAX_ROWS/4], outputSection3[MAX_ROWS/4], outputSection4[MAX_ROWS/4], output[MAX_ROWS];
+	std::string outputSection[MAX_ROWS], outputSection2[MAX_ROWS];
 
 	#pragma omp parallel sections
 	{
 		#pragma omp section
 		{
-			for(int i = 0; i < MAX_ROWS/4; ++i)
+			for(int i = 0; i < MAX_ROWS; ++i)
 			{
-				for(int j = 0; j < MAX_COLS; ++j)
+				for(int j = 0; j < MAX_COLS/2; ++j)
 				{
 					char buffer[33];
 					_itoa_s(data[i][j], buffer, 10);
@@ -132,94 +132,46 @@ void SortOut::outputSortedRows()
 					outputSection[i] += "\t";
 				}
 
-				outputSection[i] += "\n";
 			}
 		}
 
 		#pragma omp section	
 		{
-			for(int i = MAX_ROWS/4; i < MAX_ROWS/2 ; ++i)
+			for(int i = 0; i < MAX_ROWS ; ++i)
 			{
-				for(int j = 0; j < MAX_COLS; ++j)
+				for(int j = MAX_COLS/2; j < MAX_COLS; ++j)
 				{
 					char buffer[33];
 					_itoa_s(data[i][j], buffer, 10);
-					outputSection2[i - MAX_ROWS/4] += buffer;
-					outputSection2[i - MAX_ROWS/4] += "\t";
+					outputSection2[i] += buffer;
+					outputSection2[i] += "\t";
 				}
-				outputSection2[i - MAX_ROWS/4]+= "\n";
+				outputSection2[i]+= "\n";
 			}
 		}
 
-		#pragma omp section	
-		{
-			for(int i = MAX_ROWS/2; i < 3*MAX_ROWS/4 ; ++i)
-			{
-				for(int j = 0; j < MAX_COLS; ++j)
-				{
-					char buffer[33];
-					_itoa_s(data[i][j], buffer, 10);
-					outputSection3[i - MAX_ROWS/2] += buffer;
-					outputSection3[i - MAX_ROWS/2] += "\t";
-				}
-				outputSection3[i - MAX_ROWS/2]+= "\n";
-			}
-		}
+	}	
 
-		#pragma omp section	
-		{
-			for(int i = 3*MAX_ROWS/4; i < MAX_ROWS ; ++i)
-			{
-				for(int j = 0; j < MAX_COLS; ++j)
-				{
-					char buffer[33];
-					_itoa_s(data[i][j], buffer, 10);
-					outputSection4[i - 3*MAX_ROWS/4] += buffer;
-					outputSection4[i - 3*MAX_ROWS/4] += "\t";
-				}
-				outputSection4[i - 3*MAX_ROWS/4]+= "\n";
-			}
-		}
+	for( int i(0); i < MAX_ROWS; ++i)
+	{
+		outputSection[i] += outputSection2[i];
 	}
 
-	for (int i = 0; i < MAX_ROWS/4; ++i) 
+	for (int i = 1; i < MAX_ROWS; ++i) 
 	{
-		output[0] += outputSection[i];	
+		outputSection[0] += outputSection[i];
 	}
 	
-	for (int i = MAX_ROWS/4; i < MAX_ROWS/2; ++i) 
-	{
-		output[0] += outputSection2[i];	
-	}
-	
-	for (int i = MAX_ROWS/2; i < 3*MAX_ROWS/4; ++i) 
-	{
-		output[0] += outputSection3[i];	
-	}
-	
-	for (int i = 3*MAX_ROWS/4; i < MAX_ROWS; ++i) 
-	{
-		output[0] += outputSection4[i];	
-	}
-	
-	outputFile("soDataRows.txt",  output[0].c_str());
+	outputFile("soDataRows.txt",  outputSection[0].c_str());
 
 	swOutputSortedRows.stopTimer();
 	printf("\n\nDone.");
 
 }
 
-
+*/
 // *********** sortAll **********
 
-// for
-void SortOut::sortAll()
-{
-	// TO DO
-	
-}
-
-/*
 // section
 void SortOut::sortAll()
 {
@@ -231,49 +183,106 @@ void SortOut::sortAll()
 	swSortAll.stopTimer();
 	printf("\n\nDone.");
 }
-*/
+
 
 // *********** outputSortedAll **********
-
+/*
 // for
 void SortOut::outputSortedAll()
 {
-	// TO DO
 	printf("\n\n*** outputting data to soDataAll.txt... ***");
 	swOutputSortedAll.startTimer();
 
-	std::string output;
-	for(int j=1; j<=MAX_COLS*MAX_ROWS; j++)
+	std::string output[MAX_ROWS];
+	#pragma omp parallel for
+	for(int i = 0; i < MAX_ROWS; ++i)
 	{
-		char buffer [33];
-		_itoa_s(allData[j], buffer, 10);
-		output += buffer;
-		output += "\t";
-
-		if(j % 1000 == 0)
+		for(int j = 0; j < MAX_COLS; ++j)
 		{
-			output += "\n";
+			char buffer [33];
+			_itoa_s(allData[i*MAX_COLS + j], buffer, 10);
+			output[i] += buffer;
+			output[i] += "\t";
 		}
+		output[i] += "\n";
 	}
-			
-	outputFile("soDataAll.txt", output.c_str());
+	
+	
+	for (int i = 1; i < MAX_ROWS; ++i) 
+	{
+		output[0] += output[i];
+	}
+
+	outputFile("soDataAll.txt", output[0].c_str());
 
 	swOutputSortedAll.stopTimer();
 	printf("\n\nDone.");
 }
 
-/*
+*/
+
 // section
 void SortOut::outputSortedAll()
 {
-	TO DO
+	printf("\n\n*** outputting data to soDataRows.txt... ***");
+	swOutputSortedAll.startTimer();
+	
+	std::string outputSection[MAX_ROWS], outputSection2[MAX_ROWS];
+
+	#pragma omp parallel sections
+	{
+		#pragma omp section
+		{
+			for(int i = 0; i < MAX_ROWS; ++i)
+			{
+				for(int j = 0; j < MAX_COLS/2; ++j)
+				{
+					char buffer [33];
+					_itoa_s(allData[i*(MAX_COLS) + j], buffer, 10);
+					outputSection[i] += buffer;
+					outputSection[i] += "\t";
+				}
+			}
+		}
+
+		#pragma omp section	
+		{
+			for(int i = 0; i < MAX_ROWS ; ++i)
+			{
+				for(int j = MAX_COLS/2; j < MAX_COLS; ++j)
+				{
+					char buffer [33];
+					_itoa_s(allData[i*(MAX_COLS) + j], buffer, 10);
+					outputSection2[i] += buffer;
+					outputSection2[i] += "\t";
+				
+				}
+				outputSection2[i] += "\n";
+			}
+		}
+
+	}
+
+	for( int i(0); i < MAX_ROWS; ++i)
+	{
+		outputSection[i] += outputSection2[i];
+	}
+
+	for (int i = 1; i < MAX_ROWS; ++i) 
+	{
+		outputSection[0] += outputSection[i];
+	}
+		
+	outputFile("soDataAll.txt",  outputSection[0].c_str());
+
+	swOutputSortedAll.stopTimer();
+	printf("\n\nDone.");
 }
-*/
+
 
 // *********** calcMovingAve **********
 
 // for
-/*
 void SortOut::calcMovingAve()
 {
 	swCalcMovingAve.startTimer();
@@ -295,17 +304,17 @@ void SortOut::calcMovingAve()
 		}
 	swCalcMovingAve.stopTimer();
 }
-*/
 
+/*
 // section
 void SortOut::calcMovingAve()
 {
-	swCalcMovingAve.startTimer();
 	int sum[MAX_ROWS];
 
 	for(int j = 0; j < MAX_ROWS; ++j)
 	{
 		sum[j] = 0;
+		
 		#pragma omp parallel sections
 		{
 			// first 100 values in one row
@@ -383,7 +392,7 @@ void SortOut::calcMovingAve()
 				ave[6][j] = sum[j]/100;
 			}
 
-			// eighth 100 values in one row
+			// eigth 100 values in one row
 			#pragma omp section
 			{
 				sum[j] = 0;
@@ -417,11 +426,12 @@ void SortOut::calcMovingAve()
 			}
 		}
 	}
-	swCalcMovingAve.stopTimer();
 }
+*/
 
 
 // *********** outputAveRows **********
+
 // for
 void SortOut::outputAveRows()
 {
@@ -432,7 +442,7 @@ void SortOut::outputAveRows()
 	#pragma omp parallel for
 		for(int i=0; i < MAX_ROWS; i++) 
 		{
-			for(int j = 0; j < 10; j++) 
+			for(int j = 0; j < MAX_COLS/100; j++) 
 			{
 				char buffer [33];
 				_itoa_s(ave[j][i], buffer, 10);
@@ -456,11 +466,60 @@ void SortOut::outputAveRows()
 // sections
 void SortOut::outputAveRows()
 {
-	TO DO
+	printf("\n\n*** outputting data to soDataAve.txt... ***");
+	swOutputAveRows.startTimer();
+	
+	std::string outputSection[MAX_ROWS], outputSection2[MAX_ROWS];
+
+	#pragma omp parallel sections
+	{
+		#pragma omp section
+		{
+			for(int i = 0; i < MAX_ROWS; ++i)
+			{
+				for(int j = 0; j < MAX_COLS/200; ++j)
+				{
+					char buffer[33];
+					_itoa_s(ave[j][i], buffer, 10);
+					outputSection[i] += buffer;
+					outputSection[i] += "\t";
+				}
+
+			}
+		}
+
+		#pragma omp section	
+		{
+			for(int i = 0; i < MAX_ROWS ; ++i)
+			{
+				for(int j = MAX_COLS/200; j < MAX_COLS/100; ++j)
+				{
+					char buffer[33];
+					_itoa_s(ave[j][i], buffer, 10);
+					outputSection2[i] += buffer;
+					outputSection2[i] += "\t";
+				}
+				outputSection2[i]+= "\n";
+			}
+		}
+
+	}	
+
+	for( int i(0); i < MAX_ROWS; ++i)
+	{
+		outputSection[i] += outputSection2[i];
+	}
+
+	for (int i = 1; i < MAX_ROWS; ++i) 
+	{
+		outputSection[0] += outputSection[i];
+	}
+
+	outputFile("soDataAve.txt", outputSection[0].c_str());
+	swOutputAveRows.stopTimer();
+	printf("\n\nDone.");
 }
 */
-
-
 
 // ********************
 // help methods
