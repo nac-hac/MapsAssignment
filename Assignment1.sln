@@ -3,6 +3,8 @@ Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "v3", "v3\v3.vcxproj", "{7C0B8CEE-ABC6-4C56-BF1D-EFBC9C76FDDF}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Parallel SECTIONS", "Parallel SECTIONS\Parallel SECTIONS.vcxproj", "{0F70D2D8-5A6B-412B-9340-251A4437AF5F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -13,6 +15,10 @@ Global
 		{7C0B8CEE-ABC6-4C56-BF1D-EFBC9C76FDDF}.Debug|Win32.Build.0 = Debug|Win32
 		{7C0B8CEE-ABC6-4C56-BF1D-EFBC9C76FDDF}.Release|Win32.ActiveCfg = Release|Win32
 		{7C0B8CEE-ABC6-4C56-BF1D-EFBC9C76FDDF}.Release|Win32.Build.0 = Release|Win32
+		{0F70D2D8-5A6B-412B-9340-251A4437AF5F}.Debug|Win32.ActiveCfg = Debug|Win32
+		{0F70D2D8-5A6B-412B-9340-251A4437AF5F}.Debug|Win32.Build.0 = Debug|Win32
+		{0F70D2D8-5A6B-412B-9340-251A4437AF5F}.Release|Win32.ActiveCfg = Release|Win32
+		{0F70D2D8-5A6B-412B-9340-251A4437AF5F}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
