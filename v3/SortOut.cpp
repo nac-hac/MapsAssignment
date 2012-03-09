@@ -216,6 +216,7 @@ void SortOut::outputSortedRows()
 void SortOut::sortAll()
 {
 	// TO DO
+	
 }
 
 /*
@@ -272,6 +273,7 @@ void SortOut::outputSortedAll()
 // *********** calcMovingAve **********
 
 // for
+/*
 void SortOut::calcMovingAve()
 {
 	swCalcMovingAve.startTimer();
@@ -293,17 +295,17 @@ void SortOut::calcMovingAve()
 		}
 	swCalcMovingAve.stopTimer();
 }
+*/
 
-/*
 // section
 void SortOut::calcMovingAve()
 {
+	swCalcMovingAve.startTimer();
 	int sum[MAX_ROWS];
 
 	for(int j = 0; j < MAX_ROWS; ++j)
 	{
 		sum[j] = 0;
-		
 		#pragma omp parallel sections
 		{
 			// first 100 values in one row
@@ -381,7 +383,7 @@ void SortOut::calcMovingAve()
 				ave[6][j] = sum[j]/100;
 			}
 
-			// eigth 100 values in one row
+			// eighth 100 values in one row
 			#pragma omp section
 			{
 				sum[j] = 0;
@@ -415,8 +417,8 @@ void SortOut::calcMovingAve()
 			}
 		}
 	}
+	swCalcMovingAve.stopTimer();
 }
-*/
 
 
 // *********** outputAveRows **********
