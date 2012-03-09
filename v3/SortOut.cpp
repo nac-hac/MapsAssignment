@@ -81,7 +81,7 @@ void SortOut::sortRows()
 
 
 // *********** outputSortedRows **********
-
+/*
 // for
 void SortOut::outputSortedRows() {
 	printf("\n\n*** outputting data to soDataRows.txt... ***");
@@ -108,14 +108,107 @@ void SortOut::outputSortedRows() {
 	swOutputSortedRows.stopTimer();
 	printf("\n\nDone.");
 }
+*/
 
-/*
 //section
 void SortOut::outputSortedRows()
 {
-	TO DO
+	printf("\n\n*** outputting data to soDataRows.txt... ***");
+	swOutputSortedRows.startTimer();
+	
+	std::string outputSection[MAX_ROWS/4], outputSection2[MAX_ROWS/4], outputSection3[MAX_ROWS/4], outputSection4[MAX_ROWS/4], output[MAX_ROWS];
+
+	#pragma omp parallel sections
+	{
+		#pragma omp section
+		{
+			for(int i = 0; i < MAX_ROWS/4; ++i)
+			{
+				for(int j = 0; j < MAX_COLS; ++j)
+				{
+					char buffer[33];
+					_itoa_s(data[i][j], buffer, 10);
+					outputSection[i] += buffer;
+					outputSection[i] += "\t";
+				}
+
+				outputSection[i] += "\n";
+			}
+		}
+
+		#pragma omp section	
+		{
+			for(int i = MAX_ROWS/4; i < MAX_ROWS/2 ; ++i)
+			{
+				for(int j = 0; j < MAX_COLS; ++j)
+				{
+					char buffer[33];
+					_itoa_s(data[i][j], buffer, 10);
+					outputSection2[i - MAX_ROWS/4] += buffer;
+					outputSection2[i - MAX_ROWS/4] += "\t";
+				}
+				outputSection2[i - MAX_ROWS/4]+= "\n";
+			}
+		}
+
+		#pragma omp section	
+		{
+			for(int i = MAX_ROWS/2; i < 3*MAX_ROWS/4 ; ++i)
+			{
+				for(int j = 0; j < MAX_COLS; ++j)
+				{
+					char buffer[33];
+					_itoa_s(data[i][j], buffer, 10);
+					outputSection3[i - MAX_ROWS/2] += buffer;
+					outputSection3[i - MAX_ROWS/2] += "\t";
+				}
+				outputSection3[i - MAX_ROWS/2]+= "\n";
+			}
+		}
+
+		#pragma omp section	
+		{
+			for(int i = 3*MAX_ROWS/4; i < MAX_ROWS ; ++i)
+			{
+				for(int j = 0; j < MAX_COLS; ++j)
+				{
+					char buffer[33];
+					_itoa_s(data[i][j], buffer, 10);
+					outputSection4[i - 3*MAX_ROWS/4] += buffer;
+					outputSection4[i - 3*MAX_ROWS/4] += "\t";
+				}
+				outputSection4[i - 3*MAX_ROWS/4]+= "\n";
+			}
+		}
+	}
+
+	for (int i = 0; i < MAX_ROWS/4; ++i) 
+	{
+		output[0] += outputSection[i];	
+	}
+	
+	for (int i = MAX_ROWS/4; i < MAX_ROWS/2; ++i) 
+	{
+		output[0] += outputSection2[i];	
+	}
+	
+	for (int i = MAX_ROWS/2; i < 3*MAX_ROWS/4; ++i) 
+	{
+		output[0] += outputSection3[i];	
+	}
+	
+	for (int i = 3*MAX_ROWS/4; i < MAX_ROWS; ++i) 
+	{
+		output[0] += outputSection4[i];	
+	}
+	
+	outputFile("soDataRows.txt",  output[0].c_str());
+
+	swOutputSortedRows.stopTimer();
+	printf("\n\nDone.");
+
 }
-*/
+
 
 // *********** sortAll **********
 
