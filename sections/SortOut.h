@@ -21,7 +21,6 @@
 #define MAX_ELEMENTS MAX_ROWS * MAX_COLS //total amount of elements in our allData array
 
 #define SEGMENTS_DATA 25 //amount of segments the data rows should be divided into
-#define SEGMENTS_ALLDATA 1000 //amount of segments allData should be divided into
 
 class SortOut {
 
@@ -44,8 +43,7 @@ class SortOut {
 		void outputTimes(); //output all timer data to console
 		void outputToFile(const char* filename, const char* content); //handles file creation and output
 		void merge(int SizeA, int SizeB, int* A, int* B, int* Destination); //merge two sorted arrays into destination array
-		void bubblesortSplitV1(int* data, const int dataSize, const int numberOfSegments); //split array into segments for efficient bubblesorting with a parallelizable merge
-		void bubblesortSplitV2(int* data, const int dataSize, const int numberOfSegments); //split array into segments for efficient bubblesorting 
+		void bubblesortSplit(int* data, const int dataSize, const int numberOfSegments); //split array into segments for efficient bubblesorting with a parallelizable merge
 		void bubblesort(int* data, const int dataSize); //original bubblesort algorithm
 		
 		//Members

@@ -64,8 +64,7 @@ void SortOut::sortRows()
 	#pragma omp parallel for
 	for (int i = 0; i < MAX_ROWS; ++i) 
 	{
-		//Use V2 because the amount of data in one row is low enough for this version to be slightly faster
-		bubblesortSplitV2(data[i], MAX_COLS, SEGMENTS_DATA);
+		bubblesortSplit(data[i], MAX_COLS, SEGMENTS_DATA);
 	}
 
 	swSortRows.stopTimer();
@@ -113,9 +112,10 @@ void SortOut::sortAll()
 	printf("*** sortAll ***\n\n");
 	swSortAll.startTimer();
 
-	for (int i = 0; i < MAX_ROWS; ++i) {
-		memcpy((int*)&allData[i*MAX_COLS], (int*)&data[i][0], sizeof(int)*MAX_COLS);
-	}
+	#pragma omp parallel for
+		for (int i = 0; i < MAX_ROWS; ++i) {
+			memcpy((int*)&allData[i*MAX_COLS], (int*)&data[i][0], sizeof(int)*MAX_COLS);
+		}
 
 	//Calculate this only once
 	int segmentSize = MAX_COLS;
@@ -317,9 +317,10 @@ void SortOut::outputToFile(const char* filename, const char* content) {
 }
 
 //Split array into segments for efficient bubblesorting with a parallelizable merge
-//V2 has better performance on lesser elements, because the merge of V1 comes with a big overhead.
-//This is especially due to a lot of expensive heap allocation which is neccessary to let the algorithm work with any parameter
-void SortOut::bubblesortSplitV1(int* data, const int dataSize, const int numberOfSegments) 
+//This method comes with some overhead due to a lot of expensive heap allocation 
+//which is neccessary to let the algorithm work with any parameter. 
+//It could be further optimised if this flexibility is not needed.
+void SortOut::bubblesortSplit(int* data, const int dataSize, const int numberOfSegments) 
 {
 	//Calculate this only once
 	int rest = dataSize % numberOfSegments;
@@ -334,8 +335,7 @@ void SortOut::bubblesortSplitV1(int* data, const int dataSize, const int numberO
 		segments[i] = &data[i*segmentSize];
 	}
 
-	//Sort each segment in parallel
-	#pragma omp parallel for
+	//Sort each segment
 	for (int i = 0; i < numberOfSegments; ++i) 
 	{			
 		bubblesort(segments[i], segmentSize);
@@ -372,7 +372,6 @@ void SortOut::bubblesortSplitV1(int* data, const int dataSize, const int numberO
 		//After each loop pointer offset is doubled to point to the first member of the new larger arrays
 		int segmentCounterHalved = segmentCounter/2; //calculate this only once
 
-		#pragma omp parallel for
 		for (int i = 0; i < segmentCounterHalved; ++i) 
 		{
 			int segmentOffset = 2*i;  //calculates offset only once
@@ -399,55 +398,6 @@ void SortOut::bubblesortSplitV1(int* data, const int dataSize, const int numberO
 	//Cleanup heap
 	delete[] tail;
 	delete[] segments;
-}
-
-//split array into segments for efficient bubblesorting
-void SortOut::bubblesortSplitV2(int* data, const int dataSize, const int numberOfSegments)
-{
-	//Calculate this only once
-	int segmentSize = dataSize/numberOfSegments;
-	
-	//An array of an amount of "numberOfThreads" int pointers
-	int** segments = new int*[numberOfSegments];	
-
-	//Let each pointer point to a factorized offset of "segmentsize" of the inputarray
-	for (int i = 0; i < numberOfSegments; ++i) 
-	{
-		segments[i] = &data[i*segmentSize];
-	}
-
-	//Sort each segment
-	for (int i = 0; i < numberOfSegments; ++i) 
-	{			
-		bubblesort(segments[i], segmentSize);
-	}	
-
-	//Sort tail
-	int rest = dataSize % numberOfSegments;
-	int maxNoRest = dataSize-rest; //caculate only once 
-	bubblesort((int*)&data[maxNoRest], rest);
-
-	//This Algorithm merges an array of segments in the following way 
-	// 6 Elements, hyphen = merged, in = iteration
-	// i1: 0 1 2 3 4 5 -> 
-	// i2: 0-1 2 3 4 5 -> 
-	// i3: 0-1-2 3 4 5 ->
-	// i4: 0-1-2-3-4 5 ->
-	// i5: 0-1-2-3-4-5
-	int* temp = new int[dataSize]; //speedup if created on stack, but decreases flexibility of method
-	for (int i = 0; i < numberOfSegments-1; ++i) 
-	{
-		merge(segmentSize*(i+1), segmentSize, segments[0], segments[i+1], temp); //merge into temp
-		memcpy(data, temp, sizeof(int)*segmentSize*(i+2)); //copy temp back to data
-	}
-
-	//Merge the rest
-	merge(maxNoRest, rest, data, (int*)&data[maxNoRest], temp);
-	memcpy(data, temp, sizeof(int)*dataSize);
-
-	//Cleanup heap
-	delete[] segments;
-	delete[] temp;
 }
 
 //Original bubblesort algorithm
