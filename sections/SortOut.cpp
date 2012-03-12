@@ -336,7 +336,7 @@ void SortOut::outputAveRows()
 
 		#pragma omp section	
 		{
-			for(int i = 0; i < MAX_ROWS ; ++i)
+			for(int i = 0; i < MAX_ROWS; ++i)
 			{
 				for(int j = MAX_COLS/200; j < MAX_COLS/100; ++j)
 				{
