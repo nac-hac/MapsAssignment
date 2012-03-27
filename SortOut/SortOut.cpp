@@ -14,13 +14,18 @@
 #include "hr_timer.h"		//for stopwatches
 #include <stdio.h>			//for fputs
 #include <omp.h>			//for OpenMP constructs
+#include <emmintrin.h>		//for SIMD intrinsics
 using namespace std;
 
-#define MAX_ROWS 2000
-#define MAX_COLS 1000
+#define MAX_ROWS 1
+#define MAX_COLS 1
 #define MAX_CHARS 6
 
 int data[MAX_ROWS][MAX_COLS];
+
+__declspec(align(16)) int idata[MAX_ROWS][MAX_COLS];
+
+__declspec(align(16)) int bla[4] = {48,48,48,48};
 
 CStopWatch
 	swGetData,
@@ -30,6 +35,7 @@ CStopWatch
 	swOutput_mySIMDitoa;
 
 void getData();
+void getiData();
 void sortDataOmpFor();
 void testData();
 void output2StringsOmpFor_itoa();
@@ -38,10 +44,11 @@ void output2StringsOmpFor_mySIMDitoa();
 void outputTimes();
 
 
-int main(void)
+int main()
 {
 	swGetData.startTimer();
 		getData();
+		getiData();
 	swGetData.stopTimer();
 
 	swSortData.startTimer();
@@ -68,7 +75,6 @@ int main(void)
 	while (! _kbhit());  //to hold console
 }
 
-
 void getData()
 {
 	cout << "getting data...";
@@ -78,6 +84,14 @@ void getData()
 			data[i][j] = rand(); //RAND_MAX = 32767
 }
 
+void getiData()
+{
+	cout << "getting data...";
+	srand(123); //arbitrary random number seed
+	for(int i=0; i<MAX_ROWS; i++)
+		for(int j=0; j<MAX_COLS; j++)
+			idata[i][j] = rand(); //RAND_MAX = 32767
+}
 
 void sortDataOmpFor()
 {
@@ -85,13 +99,12 @@ void sortDataOmpFor()
 
 	cout << "\nsorting data...";
 
-		//#pragma omp parallel for
+		#pragma omp parallel for
 		for(int i=0; i<MAX_ROWS; i++){
 			//bubble sort row i
 			split_bubble(data[i], MAX_COLS);
 		}
 }
-
 
 void split_bubble(int *a, int max)
 {
@@ -137,7 +150,6 @@ void split_bubble(int *a, int max)
 	for(j = 0; j < MAX_COLS; j++) a[j] = s[j];
 }
 
-
 void testData()
 {
 	if (data[0][0] == 87 && data[MAX_ROWS/2][MAX_COLS/2] == 16440 && data[MAX_ROWS-1][MAX_COLS-1] == 32760)
@@ -156,7 +168,7 @@ void output2StringsOmpFor_itoa()
 	//#pragma omp parallel for private (numString) schedule (static, MAX_ROWS/2)
 	for(int i=0; i<MAX_ROWS; i++){
 		for(int j=0; j<MAX_COLS; j++){
-			itoa(data[i][j],numString,10);
+			itoa(data[i][j], numString, 10);
 			if(i < MAX_ROWS/2) {
 				odataf1 += numString;
 				odataf1+="\t";
@@ -191,7 +203,7 @@ void output2StringsOmpFor_myitoa()
 	//#pragma omp parallel for private (numString) schedule (static, MAX_ROWS/2)
 	for(int i=0; i<MAX_ROWS; i++){
 		for(int j=0; j<MAX_COLS; j++){
-			myitoa(data[i][j],numString);
+			myitoa(data[i][j], numString);
 			if(i < MAX_ROWS/2) {
 				odataf1 += numString;
 				odataf1+="\t";
@@ -217,16 +229,24 @@ void output2StringsOmpFor_myitoa()
 //builds two half-file strings in parallel using custom fn
 void output2StringsOmpFor_mySIMDitoa()
 {
-	void mySIMDitoa(int num, char * numstr);
+	void mySIMDitoa(__m128i*, __m128i*, __m128i*);
+	
+	//__declspec(align(16)) int num;
+	__declspec(align(16)) char numString[MAX_CHARS];
 
-	char numString[MAX_CHARS];
+
+	__m128i* pnum = (__m128i*) idata;
+	__m128i* pnumstr = (__m128i*) numString;
+	__m128i* pbla = (__m128i*) bla;
+
 	string odataf1, odataf2;
 	cout << "\n\noutputting data to sodata_mySIMDitoa.txt...";
 
 	//#pragma omp parallel for private (numString) schedule (static, MAX_ROWS/2)
 	for(int i=0; i<MAX_ROWS; i++){
 		for(int j=0; j<MAX_COLS; j++){
-			mySIMDitoa(data[i][j],numString);
+			//mySIMDitoa(idata[i][j], numString);
+			mySIMDitoa(pnum, pnumstr, pbla);
 			if(i < MAX_ROWS/2) {
 				odataf1 += numString;
 				odataf1+="\t";
@@ -306,57 +326,23 @@ enditoa:
 	}
 }
 
-
-void mySIMDitoa(int num, char * numstr)
+void mySIMDitoa(__m128i* pnum, __m128i* pnumstr, __m128i* pbla)
 {
 	__asm {
-			mov		ebx,numstr		; point ebx to numstr
-			mov		esi, num		; store number in esi
-			cmp		esi, 0			; if number is 0
-			jne		nextdigit
-			mov     [ebx],48		; just set numstr to "0"
-			mov     [ebx+1],0		; add terminatting null character
-			jmp		enditoa			; and end
+			mov	eax, pnumstr
+			mov	ebx, pnum
+			mov ecx, pbla
 
-nextdigit:	mov		eax, 1999999Ah		;1999999Ah = 2^34 / (10 * 2^2) (magic number!)
-			imul	esi					;IMUL ESI >> EDX:EAX <-- EAX * ESI
-										;Therefore, edx:eax = number * 2^34 / (10 * 2^2)
-										;Therefore edx	= number * 2^34 / (10 * 2^2 * 2^32)
-										;				= number * 2^34 /(10 * 2^34)
-										;				= number / 10 (integer division)
+			movdqa	xmm0, [eax]
+			movdqa	xmm1, [ebx]
+			movdqa	xmm2, [ecx]
 
-			lea		ecx, [edx + edx*4]	; ecx = edx * 5
-			add		ecx,ecx				; ecx = edx * 10
-										; therfore ecx = (number div 10) * 10
+			pand	xmm0, [ecx]
 
-			mov		eax,esi				; store original number in eax
-			sub		eax,ecx				; subtract ecx to leave remainder in eax
+			jmp		enditoa
 
-			add		eax,48				; add 48 to make eax the digit's ASCII code
+nextdigit:
 
-			mov		[ebx],al			; store digit character in numstr
-			inc		ebx
-
-			mov		esi,edx				; move number div 10 back into esi
-			cmp		esi,0				; if number div 10 = 0, we've finished
-			jnz		nextdigit
-
-			mov     [ebx],0				; so add terminating null character
-
-; The number is in reverse order of digits
-; so we need to reverse the string.
-; Note that ebx is currently pointing to the terminating null char of the number string
-
-			mov		edx,numstr	;point edx to start
-nextChar:	dec		ebx			;move end pointer back one char		
-			cmp		ebx,edx		;compare the pointers
-			jle		enditoa		;if they haven't met or passed in the middle
-			mov		eax,[edx]	;swap the chars
-			mov		ecx,[ebx]
-			mov		[ebx],al
-			mov		[edx],cl
-			inc		edx			;move start pointer forward one char
-			jmp     nextChar
 enditoa:
 	}
 }
