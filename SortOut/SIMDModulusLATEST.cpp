@@ -10,7 +10,7 @@ using namespace std;
 #define DIV_100			0x147b	
 #define DIV_10			0x199a		
 
-__declspec(align(16)) int idataA[4] = {34567,0,45678,0};
+__declspec(align(16)) int idataA[4] = {203,0,14003,0};
 __declspec(align(16)) int fortyEight[4] = {48,0,48,0};
 
 __declspec(align(16)) int div10000[4] = {DIV_10000,0,DIV_10000,0};
@@ -19,7 +19,8 @@ __declspec(align(16)) int div10[4] = {DIV_10,0,DIV_10,0};
 
 __declspec(align(16)) int ten[4] = {10,0,10,0};
 __declspec(align(16)) int hund[4] = {100,0,100,0};
-__declspec(align(16)) int thou[4] = {10000,0,10000,0};
+__declspec(align(16)) int thou[4] = {1000,0,1000,0};
+__declspec(align(16)) int hundThou[4] = {10000,0,10000,0};
 
 __declspec(align(16)) wchar_t cString[8];
 __declspec(align(16)) wchar_t cString2[8];
@@ -60,43 +61,87 @@ void main(void)
 		psrlq xmm1, 45		;logical shift right leaves us with the first numbers
 		
 		movdqa xmm4, xmm1	;copies the quotient
-		movdqa xmm5, thou	;moves 10000 into xmm5
+		movdqa xmm5, hundThou	;moves 10000 into xmm5
 
 		movdqa xmm7, fortyEight	;xmm register 
 		paddd xmm1, xmm7		;adds 48 to the numbers
 
 		movdqa [eax], xmm1		;pushes the characters into the array
+
+		movdqa xmm1, xmm2		;copies numbers to xmm1
 		
 		pmuludq xmm4, xmm5		;multiplies the quotient by 10000
 
-		psubd	xmm2, xmm4		;subtracts the quotient from the numbers
-		/*
+		psubd	xmm1, xmm4		;subtracts the quotient from the numbers
+								;xmm1 now contains the 4 numbers
 
-		cmpeqps xmm1, xmm0 ;compares if equal and stores bools in xmm1
-
-		movdqa xmm5, xmm1  ;copies bools into xmm5
-
-		pand xmm1, xmm2	   ;bitwise and the 48s
-
-		paddd xmm3, xmm1   ;adds only to the 0 to make it a char
-
-		pandn xmm5, xmm2   ;bitwise and not the 48s
-
-		paddd xmm3, xmm5   ;makes the remaining ints chars
-
-		movdqa [eax], xmm3	
-
-		mov eax, pString2 ;point to char array
-
-		movdqa [eax], xmm3	
-							
-		//pcmpeqb xmm1, xmm0 ;packed compare bits - not needed
-
-		//paddd  xmm1, xmm2 ; add 48 to the numbers
+		movdqa xmm2, xmm1		;copy numbers to xmm2
+		movdqa xmm3, div10		;moves the magic number for div10 over
+		movdqa xmm6, div100
+		pmuludq xmm1, xmm6		;divides by ten three times to 
+		pmuludq xmm1, xmm3		;give division by 1000
 		
-		//movdqa [eax], xmm1;move the digit characters into cString
+		psrlq xmm1, 35			;left shifts to give quotient
+		movdqa xmm0, xmm1		;copies quotient
 
-		*/
+		paddd xmm1, xmm7		;adds 48 to make it a char
+		
+		mov   eax, pString2		;point to string2
+		movdqa [eax], xmm1		;push to string2
+
+		movdqa xmm1, xmm2		;numbers are back in xmm1
+		movdqa xmm4, thou		;1000 in register
+
+		pmuludq	xmm0, xmm4		;multiplies quotient
+
+		psubq xmm1, xmm0		;subtract to give the three numbers
+
+		movdqa xmm6, xmm1		;copies the 3 numbers
+
+		movdqa xmm3, div100		;magic number division by 100
+
+		pmuludq	xmm1, xmm3		;multiply by div100 magic number
+
+		psrlq xmm1, 19			;logical shift to simulate division
+
+		movdqa xmm0, xmm1		; copies the quotients
+
+		paddd xmm1, xmm7		;makes numbers chars
+
+		mov   eax, pString3		;point to string3
+		movdqa [eax], xmm1		;push to string3
+
+		movdqa xmm1, hund		;move hundred into xmm1
+
+		pmuludq xmm1, xmm0		; multiply quotient by 100
+
+		psubd xmm6, xmm1		;subtract to give the two numbers 
+
+		movdqa xmm1, xmm6		;copy the numbers
+
+		movdqa xmm0, div10		;move magic number divison 10 into reg
+
+		pmuludq xmm6, div10		;multiply by magic number
+
+		psrlq xmm6, 16			;logical shift dividing by ten
+
+		movdqa xmm0, xmm6		;store the result
+
+		paddd xmm6, xmm7
+
+		mov   eax, pString4		;point to string4
+		movdqa [eax], xmm6		;push to string4
+
+		movdqa xmm5, ten		;move ten to reg
+
+		pmuludq xmm0, xmm5		;multiply quotient by ten
+
+		psubd xmm1, xmm0		;subtract resulting in the last ints
+		
+		paddd xmm1, xmm7		;finally turn the final ints to characters
+
+		mov   eax, pString5		;point to string5
+		movdqa [eax], xmm1		;push to string5	
 
 	}		
 	
@@ -104,7 +149,12 @@ void main(void)
 	for(int i = 0; i < 2; ++i)
 	{
 		output[0] += cString[i*4];		//puts chars into a string for output
-	}	
+		output[0] += cString2[i*4];
+		output[0] += cString3[i*4];
+		output[0] += cString4[i*4];
+		output[0] += cString5[i*4];
+		output[0] += 32;
+	}
 	
 	FILE * sodata;
 	sodata = fopen("lalal.txt", "w");
