@@ -81,7 +81,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="hr_timer.cpp" />
-    <ClCompile Include="simon.cpp" />
     <ClCompile Include="SortOut.cpp" />
   </ItemGroup>
   <ItemGroup>
