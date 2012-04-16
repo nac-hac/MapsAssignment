@@ -23,19 +23,14 @@ using namespace std;
 
 //SIMD Globals//===========================================================
 
-#define DIV_10000		0xd1b71759	
-#define DIV_100			0x147b	
-#define DIV_10			0x199a	
+#define MagicNumber		0x199A	
 
-__declspec(align(16)) int div10000[4] = {DIV_10000,0,DIV_10000,0};
-__declspec(align(16)) int div100[4] = {DIV_100,0,DIV_100,0};
-__declspec(align(16)) int div10[4] = {DIV_10,0,DIV_10,0};
 
-__declspec(align(16)) int ten[4] = {10,0,10,0};
-__declspec(align(16)) int hund[4] = {100,0,100,0};
-__declspec(align(16)) int thou[4] = {1000,0,1000,0};
-__declspec(align(16)) int hundThou[4] = {10000,0,10000,0};
-__declspec(align(16)) int fortyEight[4] = {48,0,48,0};
+__declspec(align(16)) int div10000[4] = {MagicNumber, MagicNumber, MagicNumber, MagicNumber};
+
+__declspec(align(16)) int ten[4] = {10,10,10,10};
+
+__declspec(align(16)) int fortyEight[4] = {48,48,48,48};
 
 __declspec(align(16)) int idataA[4];
 __declspec(align(16)) wchar_t cString[8];
@@ -54,12 +49,11 @@ __m128i* pString5 = (__m128i*) cString5;
 
 //=========================================================================
 
-
 int data[MAX_ROWS][MAX_COLS];
 
 __declspec(align(16)) int idata[MAX_ROWS][MAX_COLS];
 
-std::wstring output[12];
+ wchar_t *output = new wchar_t[12000000];
 
 CStopWatch
 	swGetData,
@@ -224,7 +218,7 @@ void output2StringsOmpFor_itoa()
 	string odataf1, odataf2;
 	cout << "\n\noutputting data to sodata_itoa.txt...";
 
-	//#pragma omp parallel for private (numString) schedule (static, MAX_ROWS/2)
+	#pragma omp parallel for private (numString) schedule (static, MAX_ROWS/2)
 	for(int i=0; i<MAX_ROWS; i++){
 		for(int j=0; j<MAX_COLS; j++){
 			itoa(data[i][j], numString, 10);
@@ -258,14 +252,14 @@ void output2StringsOmpFor_myitoa()
 	char numString[MAX_CHARS];
 	string odataf1, odataf2;
 	cout << "\n\noutputting data to sodata_myitoa.txt...";
-
-	#pragma omp parallel for private (numString) schedule (static, MAX_ROWS/2)
+	
+#pragma omp parallel for private (numString) schedule (static, MAX_ROWS/2)
 	for(int i=0; i < MAX_ROWS; i++)
 	{
 		for(int j=0; j < MAX_COLS; j++)
 		{
 			myitoa(data[i][j], numString);
-
+			
 			if(i < MAX_ROWS/2) 
 			{
 				odataf1 += numString;
@@ -281,7 +275,20 @@ void output2StringsOmpFor_myitoa()
 		else
 			odataf2+="\n";
 	}
+	
+	/*
+	for(int i=0; i < MAX_ROWS; i++)
+	{
+		for(int j=0; j < MAX_COLS; j++)
+		{
+			myitoa(data[i][j], numString);
+			odataf1 += numString;
+			odataf1+="\t";
+		}
 
+		odataf1+="\n";
+	}
+	*/
 	FILE * sodata;
 	sodata = fopen ("sodata_myitoa.txt","w");
 	fputs(odataf1.c_str(), sodata);
@@ -292,32 +299,26 @@ void output2StringsOmpFor_myitoa()
 //builds two half-file strings in parallel using custom fn
 void output2StringsOmpFor_mySIMDitoa()
 {
-	void mySIMDitoa(int, int);
+	void mySIMDitoa(int, int, int, int);	
 	
-	std::wstring data;
-
 	cout << "\n\noutputting data to sodata_mySIMDitoa.txt...";
-
-	//#pragma omp parallel for private (data) schedule (static, MAX_ROWS/2)
-		for(int i=0; i < 2000; ++i)
+	
+	for(int i = 0; i < MAX_ROWS; ++i)
+	{
+		for(int j = 0; j < MAX_COLS/4; j++)
 		{
-			for(int j=0; j < MAX_COLS/2; j++)
-			{
-				mySIMDitoa(idata[i][j*2], idata[i][(j*2)+1]);
-
-				for(int k = 0; k < 12; ++k)
-				{
-					data += output[k];
-				}
-			}
-
-			data += 012;
+			mySIMDitoa(idata[i][j*4], idata[i][(j*4)+1], idata[i][(j*4)+2], idata[i][(j*4)+3]);
+			output[j*4] = cString[j];
+			output[(j*4)+1] = cString2[j];
+			output[(j*4)+2] = cString3[j];
+			output[(j*4)+3] = cString4[j];
 		}
+	output[0] += 012;
+	}		
 
 	FILE * sodata;
 	sodata = fopen ("sodata_mySIMDitoa.txt","w");
-	fputws(data.c_str(), sodata);
-	
+	fputws(output, sodata);
 	fclose (sodata);
 }
 
@@ -378,124 +379,86 @@ enditoa:
 	}
 }
 
-void mySIMDitoa(int num, int num2)
+void mySIMDitoa(int num, int num2, int num3, int num4)
 {
 	idataA[0] = num;
-	idataA[1] = 0;
-	idataA[2] = num2;
-	idataA[3] = 0;	
+	idataA[1] = num2;
+	idataA[2] = num3;
+	idataA[3] = num4;	
 
 	__asm {
 
-		mov eax, pString	;point to char array
-		mov ebx, pidataA	;numbers array
-						
+		mov eax, pString		;point to char array
+		mov ebx, pidataA		;numbers array
+								
 		movdqa xmm1, [ebx]		;numbers
 		movdqa xmm2, xmm1		;copies the numbers
 		movdqa xmm3, div10000	;magic num div10000 in xmm reg	
+		movdqa xmm4, fortyEight	;moves the forty eights into xmm4
 						
-		pmuludq	xmm1, xmm3	;multiplies by the DIV_10000 magic number but splits into two 64 bit registers
-		psrlq xmm1, 45		;logical shift right leaves us with the first numbers
+		pmulhuw	xmm1, xmm3		;This knocks the last number off of the 5 digits so we have abcd of abcde
+		movdqa	xmm5, xmm1		;stores abcd in xmm5
+		pmulhuw xmm1, xmm3		;knocks the last number off so we have abc
+		movdqa  xmm6, xmm1		;stores abc in xmm6
+		pmulhuw xmm1, xmm3		;knocks off the last number giving ab
+		movdqa	xmm7, xmm1		;stores ab in xmm7
+		pmulhuw xmm1, xmm3		;knocks off last number giving a
+
+		movdqa xmm0, xmm1		;copies a
+		paddd  xmm1, xmm4		;make a a char
+
+		movdqa   [eax], xmm1	;moves the numbers into the char array
+
+		pmullw xmm0, ten		;multiplies a by ten giving a0
+
+		movdqa xmm1, xmm7		;copies ab to xmm1
+
+		psubd xmm7, xmm0		;subtracts a0 from ab giving b
+
+		paddd xmm7, xmm4		;adds 48 to b making it a char
+
+		mov eax, pString2
+		movdqa [eax], xmm7		;puts it into char array
+
+		pmullw xmm1, ten		;multiplies ab by ten - ab0
+
+		movdqa xmm0, xmm6		;makes a copy of abc
+
+		psubd  xmm6, xmm1		;subtracts ab0 from abc giving c
+
+		paddd xmm6, xmm4		;makes c 'c'
+		mov eax, pString3
+		movdqa [eax], xmm6		;maoves 'c' into char array
+
+		pmullw xmm0, ten		;gives abc0
+
+		movdqa xmm6, xmm5		;copies abcd
+
+		psubd  xmm6, xmm0		;subtracts abc0 from abcd
+
+		paddd xmm6, xmm4		;adds 48 to d
+		mov eax, pString4
+		movdqa [eax], xmm6		;moves it into char array
+
+		pmullw xmm5, ten		;multiplies abcd by ten
+
+		psubd xmm2, xmm5		;finally, takes abcd0 from abcde giving e
+
+		paddd xmm2, xmm4		;makes e a char
+		mov eax, pString5
+		movdqa [eax], xmm2		;pushes it into char array
 		
-		movdqa xmm4, xmm1	;copies the quotient
-		movdqa xmm5, hundThou	;moves 10000 into xmm5
-
-		movdqa xmm7, fortyEight	;xmm register 
-		paddd xmm1, xmm7		;adds 48 to the numbers
-
-		movdqa [eax], xmm1		;pushes the characters into the array
-
-		movdqa xmm1, xmm2		;copies numbers to xmm1
-		
-		pmuludq xmm4, xmm5		;multiplies the quotient by 10000
-
-		psubd	xmm1, xmm4		;subtracts the quotient from the numbers
-								;xmm1 now contains the 4 numbers
-
-		movdqa xmm2, xmm1		;copy numbers to xmm2
-		movdqa xmm3, div10		;moves the magic number for div10 over
-		movdqa xmm6, div100
-		pmuludq xmm1, xmm6		;divides by ten three times to 
-		pmuludq xmm1, xmm3		;give division by 1000
-		
-		psrlq xmm1, 35			;left shifts to give quotient
-		movdqa xmm0, xmm1		;copies quotient
-
-		paddd xmm1, xmm7		;adds 48 to make it a char
-		
-		mov   eax, pString2		;point to string2
-		movdqa [eax], xmm1		;push to string2
-
-		movdqa xmm1, xmm2		;numbers are back in xmm1
-		movdqa xmm4, thou		;1000 in register
-
-		pmuludq	xmm0, xmm4		;multiplies quotient
-
-		psubq xmm1, xmm0		;subtract to give the three numbers
-
-		movdqa xmm6, xmm1		;copies the 3 numbers
-
-		movdqa xmm3, div100		;magic number division by 100
-
-		pmuludq	xmm1, xmm3		;multiply by div100 magic number
-
-		psrlq xmm1, 19			;logical shift to simulate division
-
-		movdqa xmm0, xmm1		; copies the quotients
-
-		paddd xmm1, xmm7		;makes numbers chars
-
-		mov   eax, pString3		;point to string3
-		movdqa [eax], xmm1		;push to string3
-
-		movdqa xmm1, hund		;move hundred into xmm1
-
-		pmuludq xmm1, xmm0		; multiply quotient by 100
-
-		psubd xmm6, xmm1		;subtract to give the two numbers 
-
-		movdqa xmm1, xmm6		;copy the numbers
-
-		movdqa xmm0, div10		;move magic number divison 10 into reg
-
-		pmuludq xmm6, div10		;multiply by magic number
-
-		psrlq xmm6, 16			;logical shift dividing by ten
-
-		movdqa xmm0, xmm6		;store the result
-
-		paddd xmm6, xmm7
-
-		mov   eax, pString4		;point to string4
-		movdqa [eax], xmm6		;push to string4
-
-		movdqa xmm5, ten		;move ten to reg
-
-		pmuludq xmm0, xmm5		;multiply quotient by ten
-
-		psubd xmm1, xmm0		;subtract resulting in the last ints
-		
-		paddd xmm1, xmm7		;finally turn the final ints to characters
-
-		mov   eax, pString5	;point to string5
-		movdqa [eax], xmm1		;push to string5	
-
-	}		
+	}
 	
-//#pragma omp parallel for
-	
-		output[0] = cString[0];		//puts chars into a string for output
-		output[1] = cString2[0];
-		output[2] = cString3[0];
-		output[3] = cString4[0];
-		output[4] = cString5[0];
+	for(int i(0); i < 4; ++i)
+	{
+		output[0] = cString[i*2];
+		output[1] = cString2[i*2];
+		output[2] = cString3[i*2];
+		output[3] = cString4[i*2];
+		output[4] = cString5[i*2];
 		output[5] = 32;
-		output[6] = cString[4];		//puts chars into a string for output
-		output[7] = cString2[4];
-		output[8] = cString3[4];
-		output[9] = cString4[4];
-		output[10] = cString5[4];
-		output[11] = 32;	
+	}
 }
 
 void outputTimes()
