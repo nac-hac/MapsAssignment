@@ -26,18 +26,18 @@ using namespace std;
 #define MagicNumber		0x199A	
 
 
-__declspec(align(16)) int div10000[4] = {MagicNumber, MagicNumber, MagicNumber, MagicNumber};
+__declspec(align(16)) short div10000[8] = {MagicNumber, MagicNumber, MagicNumber, MagicNumber,MagicNumber, MagicNumber, MagicNumber, MagicNumber};
 
-__declspec(align(16)) int ten[4] = {10,10,10,10};
+__declspec(align(16)) short ten[8] = {10,10,10,10,10,10,10,10};
 
-__declspec(align(16)) int fortyEight[4] = {48,48,48,48};
+__declspec(align(16)) short fortyEight[8] = {48,48,48,48,48,48,48,48};
 
-__declspec(align(16)) int idataA[4];
-__declspec(align(16)) wchar_t cString[8];
-__declspec(align(16)) wchar_t cString2[8];
-__declspec(align(16)) wchar_t cString3[8];
-__declspec(align(16)) wchar_t cString4[8];
-__declspec(align(16)) wchar_t cString5[8];
+__declspec(align(16)) short idataA[8];
+__declspec(align(16)) wchar_t cString[13000000/5];
+__declspec(align(16)) wchar_t cString2[13000000/5];
+__declspec(align(16)) wchar_t cString3[13000000/5];
+__declspec(align(16)) wchar_t cString4[13000000/5];
+__declspec(align(16)) wchar_t cString5[13000000/5];
 
 //__mi128i pointers to data
 __m128i* pidataA  = (__m128i*) idataA;
@@ -47,13 +47,15 @@ __m128i* pString3 = (__m128i*) cString3;
 __m128i* pString4 = (__m128i*) cString4;
 __m128i* pString5 = (__m128i*) cString5;
 
+wchar_t *test = new wchar_t[13000000];
 //=========================================================================
 
 int data[MAX_ROWS][MAX_COLS];
 
 __declspec(align(16)) int idata[MAX_ROWS][MAX_COLS];
 
- wchar_t *output = new wchar_t[12000000];
+std::wstring output;
+//char *pChar = output[0];
 
 CStopWatch
 	swGetData,
@@ -299,26 +301,27 @@ void output2StringsOmpFor_myitoa()
 //builds two half-file strings in parallel using custom fn
 void output2StringsOmpFor_mySIMDitoa()
 {
-	void mySIMDitoa(int, int, int, int);	
+	void mySIMDitoa(short, short, short, short, short, short, short, short);	
 	
 	cout << "\n\noutputting data to sodata_mySIMDitoa.txt...";
 	
-	for(int i = 0; i < MAX_ROWS; ++i)
+	int count(-1);
+	 
+	for(int i = 0; i < 1; ++i)
 	{
-		for(int j = 0; j < MAX_COLS/4; j++)
+		for(int j = 0; j < 1; j++)
 		{
-			mySIMDitoa(idata[i][j*4], idata[i][(j*4)+1], idata[i][(j*4)+2], idata[i][(j*4)+3]);
-			output[j*4] = cString[j];
-			output[(j*4)+1] = cString2[j];
-			output[(j*4)+2] = cString3[j];
-			output[(j*4)+3] = cString4[j];
-		}
-	output[0] += 012;
+			mySIMDitoa(idata[i][j*8], idata[i][(j*8)+1], idata[i][(j*8)+2], idata[i][(j*8)+3], idata[i][(j*8)+4], idata[i][(j*8)+5], idata[i][(j*8)+6], idata[i][(j*8)+7]);								
+		}		
 	}		
 
 	FILE * sodata;
 	sodata = fopen ("sodata_mySIMDitoa.txt","w");
-	fputws(output, sodata);
+	fputws(cString, sodata);
+	fputws(cString2, sodata);
+	fputws(cString3, sodata);
+	fputws(cString4, sodata);
+	fputws(cString5, sodata);
 	fclose (sodata);
 }
 
@@ -379,12 +382,16 @@ enditoa:
 	}
 }
 
-void mySIMDitoa(int num, int num2, int num3, int num4)
+void mySIMDitoa(short num, short num2, short num3, short num4, short num5, short num6, short num7, short num8)
 {
 	idataA[0] = num;
 	idataA[1] = num2;
 	idataA[2] = num3;
 	idataA[3] = num4;	
+	idataA[4] = num5;
+	idataA[5] = num6;
+	idataA[6] = num7;	
+	idataA[7] = num8;
 
 	__asm {
 
@@ -407,7 +414,7 @@ void mySIMDitoa(int num, int num2, int num3, int num4)
 		movdqa xmm0, xmm1		;copies a
 		paddd  xmm1, xmm4		;make a a char
 
-		movdqa   [eax], xmm1	;moves the numbers into the char array
+		movdqa [eax], xmm1		;moves the numbers into the char array
 
 		pmullw xmm0, ten		;multiplies a by ten giving a0
 
@@ -417,7 +424,7 @@ void mySIMDitoa(int num, int num2, int num3, int num4)
 
 		paddd xmm7, xmm4		;adds 48 to b making it a char
 
-		mov eax, pString2
+		//mov eax, pString2
 		movdqa [eax], xmm7		;puts it into char array
 
 		pmullw xmm1, ten		;multiplies ab by ten - ab0
@@ -427,7 +434,7 @@ void mySIMDitoa(int num, int num2, int num3, int num4)
 		psubd  xmm6, xmm1		;subtracts ab0 from abc giving c
 
 		paddd xmm6, xmm4		;makes c 'c'
-		mov eax, pString3
+		//mov eax, pString3
 		movdqa [eax], xmm6		;maoves 'c' into char array
 
 		pmullw xmm0, ten		;gives abc0
@@ -437,7 +444,7 @@ void mySIMDitoa(int num, int num2, int num3, int num4)
 		psubd  xmm6, xmm0		;subtracts abc0 from abcd
 
 		paddd xmm6, xmm4		;adds 48 to d
-		mov eax, pString4
+		//mov eax, pString4
 		movdqa [eax], xmm6		;moves it into char array
 
 		pmullw xmm5, ten		;multiplies abcd by ten
@@ -445,19 +452,8 @@ void mySIMDitoa(int num, int num2, int num3, int num4)
 		psubd xmm2, xmm5		;finally, takes abcd0 from abcde giving e
 
 		paddd xmm2, xmm4		;makes e a char
-		mov eax, pString5
-		movdqa [eax], xmm2		;pushes it into char array
-		
-	}
-	
-	for(int i(0); i < 4; ++i)
-	{
-		output[0] = cString[i*2];
-		output[1] = cString2[i*2];
-		output[2] = cString3[i*2];
-		output[3] = cString4[i*2];
-		output[4] = cString5[i*2];
-		output[5] = 32;
+		//mov eax, pString5
+		movdqa [eax], xmm2		;pushes it into char array		
 	}
 }
 
