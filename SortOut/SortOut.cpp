@@ -2,9 +2,10 @@
 
 	SortOut - integer sorting and file output program
 
-	sortout_forAssignment2.cpp	- original (serial) getData
-								- omp parallel sections:   split bubble sorting
-								- omp parallel for: 	   outputStrings2
+	Goldberg, Peter
+	Hornung, Nico
+
+	MAPS - SHU - 17/04/2012
 
 *****************************************************************/
 
@@ -25,6 +26,7 @@ using namespace std;
 
 #define MagicNumber		0x199A	
 
+std::wstring output;
 
 __declspec(align(16)) short div10000[8] = {MagicNumber, MagicNumber, MagicNumber, MagicNumber,MagicNumber, MagicNumber, MagicNumber, MagicNumber};
 
@@ -33,11 +35,11 @@ __declspec(align(16)) short ten[8] = {10,10,10,10,10,10,10,10};
 __declspec(align(16)) short fortyEight[8] = {48,48,48,48,48,48,48,48};
 
 __declspec(align(16)) short idataA[8];
-__declspec(align(16)) wchar_t cString[13000000/5];
-__declspec(align(16)) wchar_t cString2[13000000/5];
-__declspec(align(16)) wchar_t cString3[13000000/5];
-__declspec(align(16)) wchar_t cString4[13000000/5];
-__declspec(align(16)) wchar_t cString5[13000000/5];
+__declspec(align(16)) wchar_t cString[8];
+__declspec(align(16)) wchar_t cString2[8];
+__declspec(align(16)) wchar_t cString3[8];
+__declspec(align(16)) wchar_t cString4[8];
+__declspec(align(16)) wchar_t cString5[8];
 
 //__mi128i pointers to data
 __m128i* pidataA  = (__m128i*) idataA;
@@ -47,15 +49,11 @@ __m128i* pString3 = (__m128i*) cString3;
 __m128i* pString4 = (__m128i*) cString4;
 __m128i* pString5 = (__m128i*) cString5;
 
-wchar_t *test = new wchar_t[13000000];
+// char array for output
+wchar_t test[13000000];
 //=========================================================================
 
 int data[MAX_ROWS][MAX_COLS];
-
-__declspec(align(16)) int idata[MAX_ROWS][MAX_COLS];
-
-std::wstring output;
-//char *pChar = output[0];
 
 CStopWatch
 	swGetData,
@@ -65,31 +63,24 @@ CStopWatch
 	swOutput_mySIMDitoa;
 
 void getData();
-void getiData();
 void sortDataOmpFor();
-void sortIdataOmpFor();
-void testiData();
 void testData();
 void output2StringsOmpFor_itoa();
 void output2StringsOmpFor_myitoa();
 void output2StringsOmpFor_mySIMDitoa();
 void outputTimes();
 
-
 int main()
 {
 	swGetData.startTimer();
 		getData();
-		getiData();
 	swGetData.stopTimer();
 
 	swSortData.startTimer();
-		sortDataOmpFor();
-		sortIdataOmpFor();
+		sortDataOmpFor();		
 	swSortData.stopTimer();
 
-		testData();
-		testiData();
+	testData();	
 
 	swOutput_itoa.startTimer();
 		output2StringsOmpFor_itoa();
@@ -103,7 +94,7 @@ int main()
 		output2StringsOmpFor_mySIMDitoa();
 	swOutput_mySIMDitoa.stopTimer();
 
-		outputTimes();
+	outputTimes();
 
 	cout << "\n\nDone.";
 	while (! _kbhit());  //to hold console
@@ -118,15 +109,6 @@ void getData()
 			data[i][j] = rand(); //RAND_MAX = 32767
 }
 
-void getiData()
-{
-	cout << "getting data...";
-	srand(123); //arbitrary random number seed
-	for(int i=0; i<MAX_ROWS; i++)
-		for(int j=0; j<MAX_COLS; j++)
-			idata[i][j] = rand(); //RAND_MAX = 32767
-}
-
 void sortDataOmpFor()
 {
 	void split_bubble(int * a, int n);
@@ -137,19 +119,6 @@ void sortDataOmpFor()
 		for(int i=0; i<MAX_ROWS; i++){
 			//bubble sort row i
 			split_bubble(data[i], MAX_COLS);
-		}
-}
-
-void sortIdataOmpFor()
-{
-	void split_bubble(int * a, int n);
-
-	cout << "\nsorting data...";
-
-		#pragma omp parallel for
-		for(int i=0; i<MAX_ROWS; i++){
-			//bubble sort row i
-			split_bubble(idata[i], MAX_COLS);
 		}
 }
 
@@ -203,14 +172,6 @@ void testData()
 		cout << "\n\nTEST SUCCEEDED!";
 	else
 		cout << "\n\nTEST FAILED!";
-}
-
-void testiData()
-{
-	if (idata[0][0] == 87 && idata[MAX_ROWS/2][MAX_COLS/2] == 16440 && idata[MAX_ROWS-1][MAX_COLS-1] == 32760)
-		cout << "\n\nidata TEST SUCCEEDED!";
-	else
-		cout << "\n\nidata TEST FAILED!";
 }
 
 //builds two half-file strings in parallel using library fn
@@ -277,20 +238,7 @@ void output2StringsOmpFor_myitoa()
 		else
 			odataf2+="\n";
 	}
-	
-	/*
-	for(int i=0; i < MAX_ROWS; i++)
-	{
-		for(int j=0; j < MAX_COLS; j++)
-		{
-			myitoa(data[i][j], numString);
-			odataf1 += numString;
-			odataf1+="\t";
-		}
 
-		odataf1+="\n";
-	}
-	*/
 	FILE * sodata;
 	sodata = fopen ("sodata_myitoa.txt","w");
 	fputs(odataf1.c_str(), sodata);
@@ -300,28 +248,44 @@ void output2StringsOmpFor_myitoa()
 
 //builds two half-file strings in parallel using custom fn
 void output2StringsOmpFor_mySIMDitoa()
-{
+{	
 	void mySIMDitoa(short, short, short, short, short, short, short, short);	
 	
-	cout << "\n\noutputting data to sodata_mySIMDitoa.txt...";
+	cout << "\n\noutputting data to sodata_mySIMDitoa.txt...";	
 	
-	int count(-1);
-	 
-	for(int i = 0; i < 1; ++i)
+	int count(-1); //counter for the char array
+
+	for(int i = 0; i < MAX_ROWS; ++i)
 	{
-		for(int j = 0; j < 1; j++)
+		for(int j = 0; j < MAX_COLS/8; ++j)
 		{
-			mySIMDitoa(idata[i][j*8], idata[i][(j*8)+1], idata[i][(j*8)+2], idata[i][(j*8)+3], idata[i][(j*8)+4], idata[i][(j*8)+5], idata[i][(j*8)+6], idata[i][(j*8)+7]);								
-		}		
+			mySIMDitoa(data[i][j*8], data[i][(j*8)+1], data[i][(j*8)+2], data[i][(j*8)+3], data[i][(j*8)+4], data[i][(j*8)+5], data[i][(j*8)+6], data[i][(j*8)+7]);	
+			
+			//Writes the chars to a single char array - this is the bottle neck in our code.
+			for(int k = 0; k < 8; ++k)
+			{
+				//Any numbers that were greater than 16000 that ended in 9 had the 9 replaced with a slash, this corrects the problem.
+				if(cString5[k] == 47)
+				{
+					cString5[k] = 57;
+					--cString4[k];
+				}
+
+				test[++count] = cString[k];
+				test[++count] = cString2[k];
+				test[++count] = cString3[k];
+				test[++count] = cString4[k];
+				test[++count] = cString5[k];
+				test[++count] = ' ';
+			}
+		}	
+		
+		test[++count] = '\n';		
 	}		
 
 	FILE * sodata;
 	sodata = fopen ("sodata_mySIMDitoa.txt","w");
-	fputws(cString, sodata);
-	fputws(cString2, sodata);
-	fputws(cString3, sodata);
-	fputws(cString4, sodata);
-	fputws(cString5, sodata);
+	fputws(test, sodata);
 	fclose (sodata);
 }
 
@@ -391,10 +355,11 @@ void mySIMDitoa(short num, short num2, short num3, short num4, short num5, short
 	idataA[4] = num5;
 	idataA[5] = num6;
 	idataA[6] = num7;	
-	idataA[7] = num8;
+	idataA[7] = num8;	
 
 	__asm {
 
+	
 		mov eax, pString		;point to char array
 		mov ebx, pidataA		;numbers array
 								
@@ -424,7 +389,7 @@ void mySIMDitoa(short num, short num2, short num3, short num4, short num5, short
 
 		paddd xmm7, xmm4		;adds 48 to b making it a char
 
-		//mov eax, pString2
+		mov eax, pString2
 		movdqa [eax], xmm7		;puts it into char array
 
 		pmullw xmm1, ten		;multiplies ab by ten - ab0
@@ -434,7 +399,7 @@ void mySIMDitoa(short num, short num2, short num3, short num4, short num5, short
 		psubd  xmm6, xmm1		;subtracts ab0 from abc giving c
 
 		paddd xmm6, xmm4		;makes c 'c'
-		//mov eax, pString3
+		mov eax, pString3
 		movdqa [eax], xmm6		;maoves 'c' into char array
 
 		pmullw xmm0, ten		;gives abc0
@@ -444,7 +409,7 @@ void mySIMDitoa(short num, short num2, short num3, short num4, short num5, short
 		psubd  xmm6, xmm0		;subtracts abc0 from abcd
 
 		paddd xmm6, xmm4		;adds 48 to d
-		//mov eax, pString4
+		mov eax, pString4
 		movdqa [eax], xmm6		;moves it into char array
 
 		pmullw xmm5, ten		;multiplies abcd by ten
@@ -452,7 +417,7 @@ void mySIMDitoa(short num, short num2, short num3, short num4, short num5, short
 		psubd xmm2, xmm5		;finally, takes abcd0 from abcde giving e
 
 		paddd xmm2, xmm4		;makes e a char
-		//mov eax, pString5
+		mov eax, pString5
 		movdqa [eax], xmm2		;pushes it into char array		
 	}
 }
